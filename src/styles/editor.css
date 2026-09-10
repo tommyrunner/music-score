@@ -1,0 +1,92 @@
+.score-editor {
+  width: min(900px, 100%);
+  min-height: 1273px;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  padding: 68px 64px 40px;
+  border: 1px solid #d4d5cf;
+  border-radius: 2px;
+  background:
+    linear-gradient(rgba(255, 254, 248, .97), rgba(255, 254, 248, .97)),
+    repeating-linear-gradient(0deg, transparent 0 8px, rgba(58, 63, 58, .035) 9px);
+  box-shadow: 0 28px 80px rgba(30, 37, 32, .15), 9px 0 0 #e0e1da;
+}
+
+.score-intro { padding-bottom: 18px; border-bottom: 2px solid var(--ink); }
+.score-intro p { margin: 0 0 8px; color: var(--accent-dark); font: 700 9px ui-monospace, monospace; letter-spacing: .16em; }
+.score-intro h1 { margin: 0; font-family: "Iowan Old Style", "Songti SC", serif; font-size: clamp(38px, 5vw, 54px); font-weight: 500; line-height: 1.08; letter-spacing: 0; }
+.score-intro span { display: block; margin-top: 9px; color: var(--ink-soft); font-size: 10px; }
+
+.score-systems {
+  display: grid;
+  align-content: start;
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.score-system { min-width: 0; }
+.chord-row { display: grid; min-height: 27px; padding-inline: 1%; }
+.chord-row button { position: relative; min-width: 0; padding: 0; border: 0; background: transparent; font-family: "Iowan Old Style", serif; font-size: 13px; font-weight: 700; cursor: pointer; }
+.chord-row button:hover,
+.chord-row button:focus-visible { color: var(--accent-dark); }
+.chord-hint { position: absolute; left: 50%; bottom: 4px; z-index: 3; width: max-content; padding: 2px 5px; color: var(--ink-faint); border: 1px solid color-mix(in srgb, var(--line) 72%, transparent); border-radius: 4px; background: color-mix(in srgb, var(--paper) 94%, transparent); font: 9px "Avenir Next", "PingFang SC", sans-serif; opacity: 0; pointer-events: none; transform: translate(-50%, 2px); transition: opacity 100ms ease, transform 100ms ease; }
+.chord-row button:hover .chord-hint,
+.chord-row button:focus-visible .chord-hint { opacity: 1; transform: translate(-50%, 0); }
+
+.staff-wrap { position: relative; height: 112px; }
+.staff-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.staff-lines line { stroke: #505752; stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.staff-lines .edge-line { stroke-width: 1.8; }
+.function-mark-grid { position: absolute; inset: 0; display: grid; pointer-events: none; }
+.function-mark-grid > span { position: relative; min-width: 0; }
+.single-barline { position: absolute; left: 50%; top: calc(100% / 12); bottom: calc(100% / 12); width: 2px; background: #303632; transform: translateX(-50%); }
+.note-grid { position: absolute; inset: 0; display: grid; grid-template-rows: repeat(6, 1fr); }
+.note-grid button { position: relative; min-width: 0; margin: 0 8%; padding: 0; color: var(--ink); font: 700 12px ui-monospace, monospace; border: 0; background: transparent; cursor: pointer; }
+.note-grid button::after { content: ''; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); opacity: 0; transform: translate(-50%, -50%) scale(.6); transition: opacity 120ms ease, transform 120ms ease; }
+.note-grid button:hover::after,
+.note-grid button:focus-visible::after { opacity: .72; transform: translate(-50%, -50%) scale(1); }
+.note-value { min-width: 15px; height: 17px; display: inline-grid; place-items: center; padding: 0 2px; border-radius: 2px; background: var(--paper); }
+.note-grid button.has-note::after { display: none; }
+
+.lyrics-area { position: relative; display: grid; min-width: 0; margin-top: 5px; }
+.lyric-line,
+.add-lyric-line { width: 100%; min-width: 0; border: 0; background: transparent; cursor: pointer; }
+.lyric-line { height: 20px; display: flex; align-items: center; padding: 0 1%; color: var(--ink); text-align: left; }
+.lyric-line:hover,
+.lyric-line:focus-visible { background: rgba(103, 112, 105, .055); }
+.add-lyric-line { position: absolute; z-index: 2; left: 0; top: 100%; height: 20px; padding: 0 1%; color: var(--ink-faint); font-size: 9px; text-align: left; opacity: 0; transition: opacity 100ms ease, background-color 100ms ease; }
+.score-system:hover .add-lyric-line,
+.add-lyric-line:focus-visible { opacity: 1; }
+.add-lyric-line:hover,
+.add-lyric-line:focus-visible { color: var(--ink-soft); background: rgba(103, 112, 105, .055); }
+
+.score-page-footer { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-top: auto; padding-top: 28px; color: var(--ink-faint); border-top: 1px solid #d8dad4; }
+.score-page-footer span { font-family: "Iowan Old Style", "Songti SC", serif; font-size: 13px; }
+.score-page-footer small { font-size: 8px; text-align: right; }
+
+.image-page { max-width: 920px; margin: 0 auto; }
+.image-page > header { margin: 6px 0 20px; }
+.image-page > header p { margin: 0 0 6px; color: var(--accent-dark); font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+.image-page > header h1 { margin: 0; font-family: "Iowan Old Style", "Songti SC", serif; font-size: clamp(34px, 4vw, 48px); font-weight: 500; }
+.image-page > header > span { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; color: var(--ink-soft); font-size: 10px; }
+.image-page-paper { position: relative; min-height: 1120px; display: grid; place-items: center; padding: clamp(28px, 6vw, 68px); border: 1px solid #d4d5cf; border-radius: 2px; background: var(--paper); box-shadow: 0 28px 80px rgba(30, 37, 32, .15), 9px 0 0 #e0e1da; overflow: hidden; }
+.image-page-paper::before { content: ''; position: absolute; left: 22px; top: 0; bottom: 0; width: 1px; background: rgba(184, 69, 45, .22); }
+.image-page-paper > span { display: none; }
+.image-page-paper img { display: block; max-width: 100%; max-height: 920px; object-fit: contain; filter: saturate(.94) contrast(1.01); box-shadow: 0 10px 28px rgba(34, 38, 35, .1); }
+
+@media (max-width: 700px) {
+  .score-editor { min-height: calc((100vw - 16px) * 1.414); padding: 36px 18px 24px; box-shadow: 4px 0 0 #e0e1da; }
+  .score-intro { padding-bottom: 14px; }
+  .score-intro h1 { font-size: 34px; }
+  .score-systems { gap: 24px; margin-top: 18px; }
+  .staff-wrap { height: 126px; }
+  .note-grid button { margin-inline: 3%; font-size: 11px; }
+  .note-value { min-width: 11px; height: 15px; padding-inline: 1px; }
+  .chord-hint { font-size: 8px; }
+  .add-lyric-line { opacity: .72; }
+  .score-page-footer { align-items: flex-start; margin-top: 36px; }
+  .score-page-footer small { max-width: 160px; }
+  .image-page > header { margin-inline: 6px; }
+  .image-page-paper { min-height: calc((100vw - 16px) * 1.414); padding: 26px; box-shadow: 4px 0 0 #e0e1da; }
+}

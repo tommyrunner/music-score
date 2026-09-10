@@ -1,0 +1,94 @@
+:root {
+  font-family: "Avenir Next", Avenir, "Segoe UI", "PingFang SC", sans-serif;
+  color: #191d1b;
+  background: #eceeeb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --ink: #191d1b;
+  --ink-soft: #57615c;
+  --ink-faint: #89908c;
+  --surface: #eceeeb;
+  --surface-deep: #e2e5e1;
+  --surface-raised: #f5f6f3;
+  --paper: #fffef8;
+  --paper-deep: #eeeee7;
+  --line: #cdd1cc;
+  --line-strong: #afb6b0;
+  --accent: #e45232;
+  --accent-dark: #af351f;
+  --focus: #e75c3c;
+  --radius-panel: 14px;
+  --radius-control: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+body,
+#root {
+  min-height: 100dvh;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.fitted-single-line {
+  min-width: 0;
+  width: 100%;
+  display: block;
+  overflow: hidden;
+}
+
+.fitted-single-line-text {
+  width: max-content;
+  display: block;
+  font-family: "Iowan Old Style", "Songti SC", serif;
+  line-height: 1.3;
+  letter-spacing: 0;
+  white-space: nowrap;
+  transform-origin: left center;
+}
+
+button {
+  color: inherit;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--focus) 58%, transparent);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
