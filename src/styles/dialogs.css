@@ -3,7 +3,7 @@
 .dialog-heading { flex: none; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
 .dialog-heading h2 { margin: 0 0 6px; font-family: "Iowan Old Style", "Songti SC", serif; font-size: 28px; font-weight: 500; }
 .dialog-heading p { margin: 0; color: var(--ink-soft); font-size: 13px; }
-.dialog-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding-right: 2px; }
+.dialog-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 6px; margin: -6px; }
 .dialog-footer { flex: none; padding-top: 14px; border-top: 1px solid #d8dcd6; }
 .dialog-form { display: grid; gap: 9px; }
 .dialog-form label { font-size: 12px; font-weight: 650; }
