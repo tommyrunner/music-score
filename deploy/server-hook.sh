@@ -6,22 +6,33 @@
 #   拉取代码 → 安装依赖 → 构建 → 调用 deploy.sh 发布到站点目录
 #
 # 宝塔「WebHook」插件里的执行脚本填：
-#   bash /www/wwwroot/music-score-src/deploy/server-hook.sh
+#   WEB_ROOT=/www/wwwroot/music-score/dist \
+#   BACKUP_DIR=/www/wwwroot/music-score/.backups \
+#   SITE_OWNER=www:www \
+#     bash /www/wwwroot/music-score/src/deploy/server-hook.sh
 #
-# 可用环境变量（都有默认值）：
-#   REPO_DIR       代码仓库目录，默认脚本所在仓库根目录
-#   BRANCH         部署分支，默认 master
-#   WEB_ROOT       站点根目录，默认 /www/wwwroot/music-score
-#   NODE_BIN_DIR   Node 的 bin 目录；不设置时会自动探测宝塔 Node 版本管理器目录
-#   NPM_REGISTRY   npm 源，默认 https://registry.npmmirror.com
-#   SITE_OWNER     发布后文件所有者，宝塔一般是 www:www
+# 推荐目录结构（源码和发布目录各就各位，互不影响）：
+#   /www/wwwroot/music-score/src        代码仓库（本脚本所在仓库）
+#   /www/wwwroot/music-score/dist       发布目录，nginx 指向这里
+#   /www/wwwroot/music-score/.backups   发布备份
+#
+# 可用环境变量：
+#   REPO_DIR        代码仓库目录，默认脚本所在仓库根目录
+#   BRANCH          部署分支，默认 master
+#   WEB_ROOT        站点根目录，默认仓库同级的 dist 目录
+#   BACKUP_DIR      备份目录，默认站点根目录同级的 .music-score-backups
+#   NPM_CACHE_DIR   npm 缓存目录；设置后缓存放在这里，不写入 ~/.npm
+#   NODE_BIN_DIR    Node 的 bin 目录；不设置时会自动探测宝塔 Node 版本管理器目录
+#   NPM_REGISTRY    npm 源，默认 https://registry.npmmirror.com
+#   SITE_OWNER      发布后文件所有者，宝塔一般是 www:www
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="${REPO_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 BRANCH="${BRANCH:-master}"
-WEB_ROOT="${WEB_ROOT:-/www/wwwroot/music-score}"
+WEB_ROOT="${WEB_ROOT:-$(cd "$REPO_DIR/.." && pwd)/dist}"
 NPM_REGISTRY="${NPM_REGISTRY:-https://registry.npmmirror.com}"
+NPM_CACHE_DIR="${NPM_CACHE_DIR:-}"
 SITE_OWNER="${SITE_OWNER:-www:www}"
 
 die() {
@@ -54,6 +65,17 @@ cd "$REPO_DIR"
 [[ -f package.json ]] || die "$REPO_DIR 不是项目根目录（找不到 package.json）"
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "$REPO_DIR 不是 git 仓库"
 
+REPO_ABS="$(pwd)"
+mkdir -p "$WEB_ROOT"
+WEB_ROOT="$(cd "$WEB_ROOT" && pwd)"
+
+# 保护：发布目录不能在仓库内部，否则 rsync --delete 会误删源码
+case "$WEB_ROOT" in
+  "$REPO_ABS" | "$REPO_ABS"/*)
+    die "WEB_ROOT（${WEB_ROOT}）不能指向代码仓库内部"
+    ;;
+esac
+
 # 避免两次部署并发执行；系统没有 flock 时跳过加锁
 LOCK_FILE="/tmp/music-score-deploy.lock"
 if command -v flock >/dev/null 2>&1; then
@@ -70,7 +92,12 @@ git reset --hard "origin/$BRANCH"
 info "当前提交：$(git log -1 --format='%h %s')"
 
 info "安装依赖"
-npm ci --include=dev --no-audit --no-fund --registry="$NPM_REGISTRY"
+npm_ci_args=(ci --include=dev --no-audit --no-fund --registry="$NPM_REGISTRY")
+if [[ -n "$NPM_CACHE_DIR" ]]; then
+  mkdir -p "$NPM_CACHE_DIR"
+  npm_ci_args+=(--cache "$NPM_CACHE_DIR")
+fi
+npm "${npm_ci_args[@]}"
 
 info "清理旧构建产物"
 # 宝塔「防跨站攻击」会向站点目录写入 .user.ini 并设置 immutable 属性。

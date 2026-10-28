@@ -109,17 +109,30 @@ git push
 
 ## 方案 B：宝塔 WebHook（服务器本地构建）
 
+推荐把所有内容收在一个目录里，源码和发布目录各就各位：
+
+```text
+/www/wwwroot/music-score/
+├── src/         代码仓库（含 node_modules、构建出的 src/dist）
+├── dist/        发布目录，nginx 指向这里
+├── .backups/    每次发布前的备份
+└── .npm-cache/  npm 缓存（可选）
+```
+
+`server-hook.sh` 默认就把「仓库同级的 `dist`」当发布目录，所以按下面布局放置时不用额外传 `WEB_ROOT`。
+
 ### B1. 在服务器放一份仓库
 
 ```bash
 cd /www/wwwroot
-git clone https://gitee.com/tommyrunner/music-score.git music-score-src
-cd music-score-src
+mkdir -p music-score
+git clone https://gitee.com/tommyrunner/music-score.git music-score/src
+cd music-score/src
 ```
 
 > 私有仓库需要给服务器配置 Gitee 部署公钥，或把远程地址换成带 token 的 HTTPS 地址。
-> 源码目录和站点目录要分开，**不要把仓库直接放在站点根目录**。
-> 服务器上的这份仓库会执行 `git reset --hard origin/master`，不要在服务器上直接改代码，所有改动都从本地 push 上来。
+> 站点目录 `music-score/dist` 和源码目录 `music-score/src` 是分开的，源码不会对外。
+> 服务器上的仓库会执行 `git reset --hard origin/master`，不要在服务器上直接改代码，所有改动都从本地 push 上来。
 
 ### B2. 安装 Node
 
@@ -133,13 +146,16 @@ cd music-score-src
    - 执行脚本：
 
      ```bash
-     export PATH=/www/server/nodejs/v22.20.0/bin:$PATH
-     WEB_ROOT=/www/wwwroot/score.example.com \
+     NODE_BIN_DIR=/www/server/nodejs/v22.20.0/bin \
+     NPM_CACHE_DIR=/www/wwwroot/music-score/.npm-cache \
+     BACKUP_DIR=/www/wwwroot/music-score/.backups \
      SITE_OWNER=www:www \
-       bash /www/wwwroot/music-score-src/deploy/server-hook.sh
+       bash /www/wwwroot/music-score/src/deploy/server-hook.sh
      ```
 
-     也可以不写 `export PATH`，改用 `NODE_BIN_DIR=/www/server/nodejs/v22.20.0/bin` 传给脚本。
+     说明：
+     - `NPM_CACHE_DIR` 可选；设置后 npm 缓存不会写到 `~/.npm`
+     - `WEB_ROOT` 不传时默认是 `/www/wwwroot/music-score/dist`，要换位置再显式传
 3. 保存后复制生成的 WebHook URL（形如 `http://服务器IP:端口/?token=xxxx`）。
 
 ### B4. 在 Gitee 配置 WebHook
@@ -152,10 +168,10 @@ cd music-score-src
 在服务器上直接执行，确认脚本本身没问题：
 
 ```bash
-bash /www/wwwroot/music-score-src/deploy/server-hook.sh
+bash /www/wwwroot/music-score/src/deploy/server-hook.sh
 ```
 
-之后每次 push 都会由 WebHook 自动触发。
+之后每次 push 都会由 WebHook 自动触发。发布完成后 nginx 的 `root` 指向 `/www/wwwroot/music-score/dist`。
 
 ---
 
@@ -163,7 +179,7 @@ bash /www/wwwroot/music-score-src/deploy/server-hook.sh
 
 把 [`deploy/nginx-spa.conf`](../deploy/nginx-spa.conf) 合并进宝塔站点的配置文件（宝塔 → 网站 → 设置 → 配置文件）：
 
-- `root` 指向发布目录（`$WEB_ROOT`）
+- 宝塔「网站目录」填 `/www/wwwroot/music-score/dist`，「运行目录」填 `/`
 - `location / { try_files $uri $uri/ /index.html; }` 保证前端路由刷新不 404
 - `index.html` 不缓存，带哈希的静态资源长缓存
 
@@ -173,18 +189,18 @@ bash /www/wwwroot/music-score-src/deploy/server-hook.sh
 
 1. `curl -I https://你的域名` 返回 200，且 `index.html` 为 `no-store`。
 2. 页面能正常打开，刷新子路径不 404。
-3. 发布后 `dist/assets/` 下新哈希文件已出现在站点目录。
+3. 发布后 `/www/wwwroot/music-score/dist/assets/` 下出现新的哈希文件。
 4. 流水线 / WebHook 日志里能看到「发布完成：N 个文件」。
 
 ## 回滚
 
-每次发布前的旧版本会备份到站点根目录同级的 `.music-score-backups/`：
+每次发布前的旧版本会备份到 `BACKUP_DIR`，默认是站点目录同级的 `.music-score-backups/`；
+按本文推荐布局时建议在 WebHook 里设置 `BACKUP_DIR=/www/wwwroot/music-score/.backups`：
 
 ```bash
-ls -lt /www/wwwroot/.music-score-backups/
-cd /www/wwwroot
-tar xzf .music-score-backups/release-YYYYmmdd-HHMMSS-*.tgz \
-  -C /www/wwwroot/score.example.com
+ls -lt /www/wwwroot/music-score/.backups/
+tar xzf /www/wwwroot/music-score/.backups/release-YYYYmmdd-HHMMSS-*.tgz \
+  -C /www/wwwroot/music-score/dist
 ```
 
 也可以直接在 Gitee 上 revert 出问题的提交再 push，自动部署会回到旧版本代码。
