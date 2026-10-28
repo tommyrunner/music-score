@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { createId } from './id'
+
 const MAX_TITLE_LENGTH = 80
 const DEFAULT_POSITION_COUNT = 24
 const DEFAULT_MEASURE_COUNT = 8
@@ -84,7 +86,7 @@ const measureSchema = z
             ...Array.from(
               { length: DEFAULT_POSITION_COUNT - positions.length },
               () => ({
-                id: crypto.randomUUID(),
+                id: createId(),
                 chord: null,
                 barline: null,
                 notes: [],
@@ -175,7 +177,7 @@ export type ScoreBook = z.infer<typeof scoreBookSchema>
 export type ScoreBookPage = ScoreBook['pages'][number]
 
 const createPosition = (): ScorePosition => ({
-  id: crypto.randomUUID(),
+  id: createId(),
   chord: null,
   barline: null,
   notes: [],
@@ -186,7 +188,7 @@ export function createScoreBook(title: string): ScoreBook {
 
   return scoreBookSchema.parse({
     schemaVersion: 1,
-    id: crypto.randomUUID(),
+    id: createId(),
     title,
     instrument: {
       type: 'guitar',
@@ -201,7 +203,7 @@ export function createScoreBook(title: string): ScoreBook {
 
 export function createScorePage(title: string): ScorePage {
   return scorePageSchema.parse({
-    id: crypto.randomUUID(),
+    id: createId(),
     type: 'score',
     title,
     measures: Array.from({ length: DEFAULT_MEASURE_COUNT }, createMeasure),
@@ -213,7 +215,7 @@ export function createImagePage(
   image: ImagePage['image'],
 ): ImagePage {
   return imagePageSchema.parse({
-    id: crypto.randomUUID(),
+    id: createId(),
     type: 'image',
     title,
     image,
@@ -222,7 +224,7 @@ export function createImagePage(
 
 export function createMeasure(): ScoreMeasure {
   return measureSchema.parse({
-    id: crypto.randomUUID(),
+    id: createId(),
     positions: Array.from({ length: DEFAULT_POSITION_COUNT }, createPosition),
     lyrics: [],
     symbols: [],

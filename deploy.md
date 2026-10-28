@@ -151,6 +151,7 @@ tar xzf /www/wwwroot/music-score/.backups/release-YYYYmmdd-HHMMSS-*.tgz \
 - **`WEB_ROOT` 不能指向仓库内部**：`server-hook.sh` 会拒绝，避免 `rsync --delete` 误删源码。
 - **不要手工往 `dist/` 放文件**：每次发布都会覆盖，非构建产物会被清掉。
 - **`ssh` 到服务器排查时**先看两处日志：宝塔 WebHook 插件日志、`/www/wwwlogs/music.kqhsxt.cn.error.log`。
+- **建议启用 HTTPS**：`crypto.randomUUID()` 等 API 只在安全上下文（HTTPS / localhost）可用；代码里已内置兜底，但 HTTPS 还能解锁剪贴板等浏览器能力。
 - 宝塔「防跨站攻击」可能往站点目录写 `.user.ini`，`deploy.sh` 会保留它；纯静态站可在站点设置里关闭该功能。
 
 ## 9. 相关文件

@@ -7,6 +7,7 @@ import {
   type ScorePage,
   type ScoreSymbol,
 } from './score-document'
+import { createId } from './id'
 
 export interface ScoreClipboardNote {
   string: number
@@ -88,7 +89,7 @@ export function addSymbol(
     measures: page.measures.map((measure) => {
       if (measure.id !== measureId) return measure
 
-      const nextSymbol: ScoreSymbol = { ...symbol, id: crypto.randomUUID() }
+      const nextSymbol: ScoreSymbol = { ...symbol, id: createId() }
       const symbols = [
         ...measure.symbols.filter(
           (candidate) =>
