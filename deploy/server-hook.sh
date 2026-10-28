@@ -73,14 +73,20 @@ info "安装依赖"
 npm ci --include=dev --no-audit --no-fund --registry="$NPM_REGISTRY"
 
 info "清理旧构建产物"
-# 宝塔「防跨站攻击」可能把 .user.ini 写进站点目录；若站点目录曾指向 dist/，
-# 这个文件会残留并导致 Vite 清空 outDir 时报 ENOTDIR。它通常带 immutable 属性。
-if [[ -f "$REPO_DIR/dist/.user.ini" ]]; then
+# 宝塔「防跨站攻击」会向站点目录写入 .user.ini 并设置 immutable 属性。
+# 若 dist 曾作为站点根目录，这些文件会残留在 dist（可能在子目录里），
+# 导致 Vite 清空 outDir 失败，或 rm 直接报 Operation not permitted。
+if [[ -d "$REPO_DIR/dist" ]]; then
   if command -v chattr >/dev/null 2>&1; then
-    chattr -i "$REPO_DIR/dist/.user.ini" 2>/dev/null || true
+    find "$REPO_DIR/dist" -name '.user.ini' -exec chattr -i {} + 2>/dev/null || true
+  fi
+  if ! rm -rf "$REPO_DIR/dist"; then
+    printf '[server-hook] 错误：无法清理 %s\n' "$REPO_DIR/dist" >&2
+    printf '[server-hook] 请手动执行：chattr -R -i "%s" && rm -rf "%s"\n' \
+      "$REPO_DIR/dist" "$REPO_DIR/dist" >&2
+    exit 1
   fi
 fi
-rm -rf "$REPO_DIR/dist"
 
 info "构建"
 npm run build
