@@ -273,6 +273,7 @@
 .file-popover > button strong { font-size: 12px; }
 .file-popover > button small { color: var(--ink-soft); font-size: 10px; }
 .file-popover-arrow { fill: var(--surface-raised); }
+.file-popover-separator { height: 1px; margin: 5px 8px; background: var(--line); }
 
 .directory-heading > div { display: grid; }
 .directory-heading > button { display: inline-flex; align-items: center; gap: 5px; padding: 7px 8px; color: var(--accent-dark); border: 0; border-radius: 7px; background: transparent; cursor: pointer; white-space: nowrap; }

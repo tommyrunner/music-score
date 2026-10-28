@@ -14,6 +14,9 @@
 .editor-guide li::marker { color: var(--accent-dark); font: 700 10px ui-monospace, monospace; }
 .editor-guide strong { color: var(--ink); font-weight: 650; }
 .editor-guide-note { margin: 2px 0 0; color: var(--ink-faint); font-size: 10px; }
+.cloud-help { margin: 0; color: var(--ink-faint); font-size: 10px; line-height: 1.65; }
+.cloud-dialog-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cloud-dialog-footer .dialog-footer-actions { margin-left: auto; }
 .dialog-form { display: grid; gap: 9px; }
 .dialog-form label { font-size: 12px; font-weight: 650; }
 .dialog-form input { width: 100%; height: 44px; padding: 0 12px; color: var(--ink); border: 1px solid #bdc4bd; border-radius: var(--radius-control); background: #fff; }

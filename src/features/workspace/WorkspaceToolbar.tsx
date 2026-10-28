@@ -2,6 +2,7 @@ import {
   ArrowUUpLeft,
   ArrowUUpRight,
   CaretDown,
+  CloudArrowDown,
   Copy,
   DownloadSimple,
   Eye,
@@ -15,10 +16,17 @@ import {
   Selection,
 } from '@phosphor-icons/react'
 import * as Popover from '@radix-ui/react-popover'
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
 
 import { useScoreStore } from '../../app/use-score-store'
 import { ProgressOverlay } from '../../components/ProgressOverlay'
+import {
+  clearCloudSource,
+  fetchCloudBooks,
+  loadCloudSource,
+  saveCloudSource,
+  type CloudSource,
+} from '../../data/cloud-source'
 import {
   downloadScoreBook,
   downloadScoreBooksArchive,
@@ -28,6 +36,7 @@ import {
 } from '../../data/score-files'
 import type { ScoreBook } from '../../domain/score/score-document'
 import { PageInfoDialog } from '../editor/PageInfoDialog'
+import { CloudSourceDialog } from './CloudSourceDialog'
 
 interface WorkspaceToolbarProps {
   activeBook?: ScoreBook
@@ -45,6 +54,8 @@ interface ProgressState {
 const yieldToUi = () => new Promise<void>((resolve) => {
   setTimeout(resolve, 0)
 })
+
+let cloudAutoFetchAttempted = false
 
 export function WorkspaceToolbar({
   activeBook,
@@ -68,11 +79,79 @@ export function WorkspaceToolbar({
   const [notice, setNotice] = useState('')
   const [progress, setProgress] = useState<ProgressState | null>(null)
   const [pageInfoOpen, setPageInfoOpen] = useState(false)
+  const [cloudSource, setCloudSource] = useState<CloudSource | null>(loadCloudSource)
+  const [cloudDialogOpen, setCloudDialogOpen] = useState(false)
 
   const activePage = activeBook?.pages.find((page) => page.id === activePageId)
 
   const progressHandler = (label: string): FileProgress => (value, detail) => {
     setProgress({ label, value, detail })
+  }
+
+  const runCloudFetch = useCallback(async (source: CloudSource) => {
+    setWorking(true)
+    setNotice('')
+    setProgress({
+      label: '正在从云端获取谱本',
+      value: 2,
+      detail: '正在连接云端接口…',
+    })
+    try {
+      const result = await fetchCloudBooks(source, (value, detail) => {
+        setProgress({ label: '正在从云端获取谱本', value, detail })
+      })
+      setProgress({
+        label: '正在写入谱本',
+        value: 94,
+        detail: `共 ${result.books.length} 本`,
+      })
+      await yieldToUi()
+      await importBooks(result.books)
+      setProgress({
+        label: '云端导入完成',
+        value: 100,
+        detail: `已导入 ${result.books.length} 本谱`,
+      })
+      await new Promise((resolve) => setTimeout(resolve, 160))
+
+      if (result.errors.length > 0) {
+        setNotice(`云端已导入 ${result.books.length} 本，${result.errors.length} 个文件无法识别`)
+      } else {
+        setNotice(`已从云端导入 ${result.books.length} 本谱`)
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : '云端获取失败，请稍后重试')
+    } finally {
+      setWorking(false)
+      setProgress(null)
+    }
+  }, [importBooks])
+
+  useEffect(() => {
+    if (activeBook || !cloudSource || cloudAutoFetchAttempted) return
+    const timer = window.setTimeout(() => {
+      cloudAutoFetchAttempted = true
+      void runCloudFetch(cloudSource)
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [activeBook, cloudSource, runCloudFetch])
+
+  const saveCloudSourceSetting = (source: CloudSource) => {
+    const saved = saveCloudSource(source)
+    setCloudSource(source)
+    setCloudDialogOpen(false)
+    cloudAutoFetchAttempted = true
+    if (!saved) {
+      setNotice('云端设置无法保存到本地，本次仍会尝试获取')
+    }
+    void runCloudFetch(source)
+  }
+
+  const clearCloudSourceSetting = () => {
+    clearCloudSource()
+    setCloudSource(null)
+    setCloudDialogOpen(false)
+    setNotice('已清除云端接口设置')
   }
 
   const save = async () => {
@@ -313,15 +392,18 @@ export function WorkspaceToolbar({
 
       <Popover.Root>
         <Popover.Trigger asChild>
-          <button className="text-button file-menu-button" aria-label="文件操作">
+          <button
+            className="text-button file-menu-button"
+            aria-label={activeBook ? '文件操作' : '数据操作'}
+          >
             <FolderSimple size={18} />
-            <span>文件</span>
+            <span>{activeBook ? '文件' : '数据'}</span>
           </button>
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Content className="file-popover" align="end" sideOffset={8}>
             <div className="file-popover-heading">
-              <strong>{activeBook ? '当前谱本' : '批量管理'}</strong>
+              <strong>{activeBook ? '当前谱本' : '数据与云端'}</strong>
               <span>
                 {activeBook ? '可导出当前页或整本 JSON' : 'JSON / ZIP 批量导入导出'}
               </span>
@@ -338,6 +420,26 @@ export function WorkspaceToolbar({
                 </span>
               </button>
             </Popover.Close>
+
+            {!activeBook && (
+              <>
+                <div className="file-popover-separator" />
+                <Popover.Close asChild>
+                  <button
+                    onClick={() => setCloudDialogOpen(true)}
+                    disabled={isWorking}
+                  >
+                    <CloudArrowDown size={19} />
+                    <span>
+                      <strong>云端获取</strong>
+                      <small>
+                        {cloudSource ? '从已保存的接口获取 ZIP' : '配置 API 后自动获取'}
+                      </small>
+                    </span>
+                  </button>
+                </Popover.Close>
+              </>
+            )}
 
             {activeBook && activePage && (
               <Popover.Close asChild>
@@ -397,6 +499,15 @@ export function WorkspaceToolbar({
           key={activePage.id}
           page={activePage}
           onClose={() => setPageInfoOpen(false)}
+        />
+      )}
+
+      {cloudDialogOpen && (
+        <CloudSourceDialog
+          source={cloudSource}
+          onClose={() => setCloudDialogOpen(false)}
+          onSave={saveCloudSourceSetting}
+          onClear={clearCloudSourceSetting}
         />
       )}
 

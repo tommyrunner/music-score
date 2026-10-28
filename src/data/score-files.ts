@@ -10,12 +10,12 @@ const MAX_ARCHIVE_BYTES = 80 * 1024 * 1024
 
 export type FileProgress = (progress: number, detail: string) => void
 
-interface ImportError {
+export interface ImportError {
   fileName: string
   message: string
 }
 
-interface ImportResult {
+export interface ImportResult {
   books: ScoreBook[]
   errors: ImportError[]
 }
