@@ -72,6 +72,16 @@ info "当前提交：$(git log -1 --format='%h %s')"
 info "安装依赖"
 npm ci --include=dev --no-audit --no-fund --registry="$NPM_REGISTRY"
 
+info "清理旧构建产物"
+# 宝塔「防跨站攻击」可能把 .user.ini 写进站点目录；若站点目录曾指向 dist/，
+# 这个文件会残留并导致 Vite 清空 outDir 时报 ENOTDIR。它通常带 immutable 属性。
+if [[ -f "$REPO_DIR/dist/.user.ini" ]]; then
+  if command -v chattr >/dev/null 2>&1; then
+    chattr -i "$REPO_DIR/dist/.user.ini" 2>/dev/null || true
+  fi
+fi
+rm -rf "$REPO_DIR/dist"
+
 info "构建"
 npm run build
 

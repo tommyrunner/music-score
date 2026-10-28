@@ -197,6 +197,7 @@ tar xzf .music-score-backups/release-YYYYmmdd-HHMMSS-*.tgz \
 | 主机部署失败 | 检查主机 Agent 是否在线；按流水线日志里的制品实际下载路径修正 `tar` 命令；确认制品包含 `deploy/` |
 | 找不到 npm / node | 设置 `NODE_BIN_DIR` 指向宝塔 Node 的 `bin` 目录 |
 | 构建报 Node 版本不满足 | Node 升级到 ≥20.19 或 ≥22.12 |
+| 构建报 `ENOTDIR ... dist/.user.ini` | 宝塔「防跨站攻击」把 `.user.ini` 写进了站点目录，而 `dist/` 曾被当作站点根目录。执行 `chattr -i dist/.user.ini; rm -rf dist` 后重新构建；新版 `server-hook.sh` 已自动清理 |
 | 页面刷新 404 | 站点 nginx 未加 `try_files ... /index.html` |
 | 静态资源 404 | 站点 `root` 没有指向发布目录，或发布脚本的 `WEB_ROOT` 配错 |
 | 403 Forbidden | 站点文件属主不对：`SITE_OWNER=www:www` 重新发布一次 |
