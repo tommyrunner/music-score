@@ -2,6 +2,8 @@ import { ArrowLeft, Guitar, Plus } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useScoreStore } from './app/use-score-store'
+import { EditorGuideDialog } from './components/EditorGuideDialog'
+import { hasSeenEditorGuide, markEditorGuideSeen } from './components/editor-guide-storage'
 import { ImagePageView } from './features/editor/ImagePageView'
 import { ScoreEditor } from './features/editor/ScoreEditor'
 import { AddPageDialog, CreateBookDialog } from './features/library/BookDialogs'
@@ -14,6 +16,7 @@ export function App() {
   const [isBookDialogOpen, setBookDialogOpen] = useState(false)
   const [isPageDialogOpen, setPageDialogOpen] = useState(false)
   const [isPreviewOpen, setPreviewOpen] = useState(false)
+  const [showEditorGuide, setShowEditorGuide] = useState(() => !hasSeenEditorGuide())
   const startedHydrating = useRef(false)
   const books = useScoreStore((state) => state.books)
   const activeBookId = useScoreStore((state) => state.activeBookId)
@@ -31,6 +34,10 @@ export function App() {
 
   const activeBook = books.find((book) => book.id === activeBookId)
   const activePage = activeBook?.pages.find((page) => page.id === activePageId)
+  const dismissEditorGuide = () => {
+    markEditorGuideSeen()
+    setShowEditorGuide(false)
+  }
 
   if (!isHydrated) {
     return (
@@ -104,6 +111,9 @@ export function App() {
 
       <AddPageDialog open={isPageDialogOpen} onOpenChange={setPageDialogOpen} />
       <ScorePreview open={isPreviewOpen} book={activeBook} onOpenChange={setPreviewOpen} />
+      {activePage?.type === 'score' && (
+        <EditorGuideDialog open={showEditorGuide} onClose={dismissEditorGuide} />
+      )}
     </div>
   )
 }

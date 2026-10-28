@@ -10,6 +10,7 @@ import {
   FileZip,
   FloppyDisk,
   FolderSimple,
+  Info,
   PencilSimple,
   Selection,
 } from '@phosphor-icons/react'
@@ -26,6 +27,7 @@ import {
   type FileProgress,
 } from '../../data/score-files'
 import type { ScoreBook } from '../../domain/score/score-document'
+import { PageInfoDialog } from '../editor/PageInfoDialog'
 
 interface WorkspaceToolbarProps {
   activeBook?: ScoreBook
@@ -65,6 +67,7 @@ export function WorkspaceToolbar({
   const [isWorking, setWorking] = useState(false)
   const [notice, setNotice] = useState('')
   const [progress, setProgress] = useState<ProgressState | null>(null)
+  const [pageInfoOpen, setPageInfoOpen] = useState(false)
 
   const activePage = activeBook?.pages.find((page) => page.id === activePageId)
 
@@ -272,6 +275,24 @@ export function WorkspaceToolbar({
                 </button>
               </Popover.Close>
 
+              {activePage && (
+                <>
+                  <div className="edit-popover-separator" />
+                  <Popover.Close asChild>
+                    <button
+                      onClick={() => setPageInfoOpen(true)}
+                      aria-label="编辑信息"
+                    >
+                      <Info size={17} />
+                      <span>
+                        <strong>编辑信息</strong>
+                        <small>{activePage.title}</small>
+                      </span>
+                    </button>
+                  </Popover.Close>
+                </>
+              )}
+
               <Popover.Arrow className="edit-popover-arrow" />
             </Popover.Content>
           </Popover.Portal>
@@ -370,6 +391,14 @@ export function WorkspaceToolbar({
         aria-label={activeBook ? '选择要导入的 JSON 文件' : '选择要导入的 JSON 或 ZIP 文件'}
         onChange={importFiles}
       />
+
+      {pageInfoOpen && activePage && (
+        <PageInfoDialog
+          key={activePage.id}
+          page={activePage}
+          onClose={() => setPageInfoOpen(false)}
+        />
+      )}
 
       {progress && (
         <ProgressOverlay

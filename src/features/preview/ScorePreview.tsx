@@ -155,7 +155,11 @@ function ScorePaper({ page, pageNumber }: { page: ScorePage; pageNumber: number 
   return (
     <article className="preview-paper" aria-label={`${page.title}六线谱纸张`}>
       <header className="preview-paper-heading">
-        <div><span>GUITAR TAB</span><h3>{page.title}</h3></div>
+        <div>
+          <span>GUITAR TAB</span>
+          <h3>{page.title}</h3>
+          {page.subtitle && <p className="preview-paper-subtitle">{page.subtitle}</p>}
+        </div>
         <small>{String(pageNumber).padStart(2, '0')}</small>
       </header>
       <div className="preview-measures">
@@ -163,7 +167,10 @@ function ScorePaper({ page, pageNumber }: { page: ScorePage; pageNumber: number 
           <PreviewMeasure key={measure.id} measure={measure} />
         ))}
       </div>
-      <footer>弦间 · Standard tuning E A D G B E</footer>
+      <footer className="preview-score-footer">
+        <span>{page.footerLeft}</span>
+        <span>{page.footerRight}</span>
+      </footer>
     </article>
   )
 }

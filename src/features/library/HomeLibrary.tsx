@@ -1,6 +1,8 @@
-import { ArrowUpRight, Guitar, Plus } from '@phosphor-icons/react'
+import { ArrowUpRight, Guitar, Plus, Trash } from '@phosphor-icons/react'
+import { useState } from 'react'
 
 import { useScoreStore } from '../../app/use-score-store'
+import { DialogShell } from '../../components/DialogShell'
 import type { ScoreBook } from '../../domain/score/score-document'
 import { WorkspaceToolbar } from '../workspace/WorkspaceToolbar'
 
@@ -18,6 +20,20 @@ function bookDate(book: ScoreBook) {
 
 export function HomeLibrary({ books, onCreateBook }: HomeLibraryProps) {
   const selectBook = useScoreStore((state) => state.selectBook)
+  const deleteBook = useScoreStore((state) => state.deleteBook)
+  const [pendingDelete, setPendingDelete] = useState<ScoreBook | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const confirmDelete = async () => {
+    if (!pendingDelete || deleting) return
+    setDeleting(true)
+    try {
+      await deleteBook(pendingDelete.id)
+      setPendingDelete(null)
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="home-page">
@@ -82,32 +98,80 @@ export function HomeLibrary({ books, onCreateBook }: HomeLibraryProps) {
           ) : (
             <div className="book-shelf">
               {books.map((book, index) => (
-                <button
+                <article
                   className={`shelf-book ${index === 0 ? 'is-featured' : ''}`}
                   key={book.id}
-                  onClick={() => selectBook(book.id)}
-                  aria-label={`打开谱本 ${book.title}`}
                 >
-                  <span className="book-cover">
-                    <span className="book-binding" />
-                    <span className="book-instrument">GUITAR TAB</span>
-                    <strong>{book.title}</strong>
-                    <span className="cover-staff">
-                      {Array.from({ length: 6 }, (_, staffIndex) => <i key={staffIndex} />)}
+                  <button
+                    className="shelf-book-open"
+                    onClick={() => selectBook(book.id)}
+                    aria-label={`打开谱本 ${book.title}`}
+                  >
+                    <span className="book-cover">
+                      <span className="book-binding" />
+                      <span className="book-instrument">GUITAR TAB</span>
+                      <strong>{book.title}</strong>
+                      <span className="cover-staff">
+                        {Array.from({ length: 6 }, (_, staffIndex) => <i key={staffIndex} />)}
+                      </span>
+                      <small>{book.pages[0]?.title ?? '还没有写下内容'}</small>
                     </span>
-                    <small>{book.pages[0]?.title ?? '还没有写下内容'}</small>
-                  </span>
-                  <span className="book-caption">
-                    <span>{book.pages.length} 页</span>
-                    <time dateTime={book.updatedAt}>{bookDate(book)}</time>
-                    <ArrowUpRight size={17} />
-                  </span>
-                </button>
+                    <span className="book-caption">
+                      <span>{book.pages.length} 页</span>
+                      <time dateTime={book.updatedAt}>{bookDate(book)}</time>
+                      <ArrowUpRight size={17} />
+                    </span>
+                  </button>
+                  <button
+                    className="shelf-book-delete"
+                    type="button"
+                    aria-label={`删除谱本 ${book.title}`}
+                    title="删除谱本"
+                    onClick={() => setPendingDelete(book)}
+                  >
+                    <Trash size={16} />
+                  </button>
+                </article>
               ))}
             </div>
           )}
         </section>
       </main>
+
+      {pendingDelete && (
+        <DialogShell
+          open
+          onOpenChange={(open) => {
+            if (!open && !deleting) setPendingDelete(null)
+          }}
+          title="删除谱本"
+          description="删除后无法恢复，谱本中的页面和图片链接都会一起移除。"
+          footer={(
+            <div className="dialog-footer-actions">
+              <button
+                className="text-button"
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                disabled={deleting}
+              >
+                取消
+              </button>
+              <button
+                className="danger-button"
+                type="button"
+                onClick={confirmDelete}
+                disabled={deleting}
+              >
+                {deleting ? '正在删除…' : '确认删除'}
+              </button>
+            </div>
+          )}
+        >
+          <p className="confirm-copy">
+            确定要删除「<strong>{pendingDelete.title}</strong>」吗？
+          </p>
+        </DialogShell>
+      )}
     </div>
   )
 }

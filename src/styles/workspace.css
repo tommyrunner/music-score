@@ -54,6 +54,7 @@
 
 .text-button,
 .primary-button,
+.danger-button,
 .editor-action-button,
 .editor-icon-button {
   min-height: 40px;
@@ -76,6 +77,7 @@
 .editor-icon-button:hover { border-color: var(--ink-soft); background: var(--paper); }
 .text-button:active,
 .primary-button:active,
+.danger-button:active,
 .editor-action-button:active,
 .editor-icon-button:active { transform: translateY(1px); }
 
@@ -85,6 +87,13 @@
   background: var(--accent);
 }
 .primary-button:hover { background: var(--accent-dark); }
+
+.danger-button {
+  color: #fff8f5;
+  border-color: #8f3528;
+  background: #a13f2e;
+}
+.danger-button:hover { background: #8f3528; }
 
 .home-main { width: min(1240px, calc(100% - 48px)); margin: 0 auto; padding: 36px 0 88px; }
 .home-hero {
@@ -181,7 +190,12 @@
 .empty-cover i { height: 1px; background: #6c716e; }
 
 .book-shelf { display: grid; grid-template-columns: 1.35fr repeat(2, 1fr); gap: clamp(22px, 3vw, 42px); align-items: end; }
-.shelf-book { min-width: 0; display: grid; gap: 14px; padding: 0; color: var(--ink); text-align: left; border: 0; background: transparent; cursor: pointer; }
+.shelf-book { position: relative; min-width: 0; }
+.shelf-book-open { width: 100%; min-width: 0; display: grid; gap: 14px; padding: 0; color: var(--ink); text-align: left; border: 0; background: transparent; cursor: pointer; }
+.shelf-book-delete { position: absolute; top: 10px; right: 10px; z-index: 3; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; color: var(--ink-soft); border: 1px solid rgba(37, 43, 39, .16); border-radius: 50%; background: color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter: blur(6px); cursor: pointer; opacity: .72; transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease, opacity 140ms ease; }
+.shelf-book-delete:hover { color: #fff8f5; border-color: #8f3528; background: #a13f2e; opacity: 1; }
+.shelf-book:hover .shelf-book-delete,
+.shelf-book:focus-within .shelf-book-delete { opacity: 1; }
 .book-cover { position: relative; min-height: 330px; display: flex; flex-direction: column; padding: 36px 30px 28px 44px; border: 1px solid #cfd1cb; background: var(--paper); box-shadow: 10px 12px 0 #202824; transition: transform 180ms ease, box-shadow 180ms ease; overflow: hidden; }
 .shelf-book:nth-child(3n + 2) .book-cover { background: #dae1dc; box-shadow-color: var(--accent); }
 .shelf-book:nth-child(3n) .book-cover { background: #e4e2db; box-shadow-color: #35453e; }

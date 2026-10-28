@@ -628,7 +628,7 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
         <div>
           <p>GUITAR TAB</p>
           <h1>{page.title}</h1>
-          <span>标准调弦 E A D G B E</span>
+          {page.subtitle && <span className="score-page-subtitle">{page.subtitle}</span>}
         </div>
       </header>
 
@@ -834,8 +834,8 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
         })}
       </div>
       <footer className="score-page-footer">
-        <span>弦间</span>
-        <small>点击谱线填写品位，点击上方空白填写和弦，点击已绘制符号可清除</small>
+        <span className="score-page-footer-side">{page.footerLeft}</span>
+        <span className="score-page-footer-side is-right">{page.footerRight}</span>
       </footer>
 
       <DialogShell

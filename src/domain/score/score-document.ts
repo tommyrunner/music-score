@@ -7,6 +7,12 @@ const DEFAULT_POSITION_COUNT = 24
 const DEFAULT_MEASURE_COUNT = 8
 
 export const MAX_FRET = 6
+export const SCORE_SUBTITLE_MAX_LENGTH = 100
+export const PAGE_FOOTER_LEFT_MAX_LENGTH = 10
+export const PAGE_FOOTER_RIGHT_MAX_LENGTH = 50
+export const DEFAULT_SCORE_SUBTITLE = '标准调弦 E A D G B E'
+export const DEFAULT_PAGE_FOOTER_LEFT = '弦间'
+export const DEFAULT_PAGE_FOOTER_RIGHT = ''
 
 const idSchema = z.string().min(1).max(100)
 const titleSchema = z.string().trim().min(1).max(MAX_TITLE_LENGTH)
@@ -104,6 +110,9 @@ const scorePageSchema = z
     id: idSchema,
     type: z.literal('score'),
     title: titleSchema,
+    subtitle: z.string().trim().max(SCORE_SUBTITLE_MAX_LENGTH).default(DEFAULT_SCORE_SUBTITLE),
+    footerLeft: z.string().trim().max(PAGE_FOOTER_LEFT_MAX_LENGTH).default(DEFAULT_PAGE_FOOTER_LEFT),
+    footerRight: z.string().trim().max(PAGE_FOOTER_RIGHT_MAX_LENGTH).default(DEFAULT_PAGE_FOOTER_RIGHT),
     measures: z.array(measureSchema).min(1).max(500),
   })
   .strict()

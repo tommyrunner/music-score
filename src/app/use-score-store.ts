@@ -3,6 +3,9 @@ import { create } from 'zustand'
 import {
   createScoreBook,
   createScorePage,
+  PAGE_FOOTER_LEFT_MAX_LENGTH,
+  PAGE_FOOTER_RIGHT_MAX_LENGTH,
+  SCORE_SUBTITLE_MAX_LENGTH,
   scoreBookSchema,
   setFretAtPosition,
   type BarlineStyle,
@@ -33,6 +36,13 @@ export interface SelectedNode {
   stringNumber: number
 }
 
+export interface PageInfoPatch {
+  title: string
+  subtitle?: string
+  footerLeft?: string
+  footerRight?: string
+}
+
 interface PageHistory {
   past: ScorePage[]
   future: ScorePage[]
@@ -57,11 +67,13 @@ interface ScoreStore {
   saveActiveBook: () => Promise<void>
   importBooks: (books: ScoreBook[]) => Promise<void>
   createBook: (title: string) => void
+  deleteBook: (bookId: string) => Promise<void>
   goHome: () => void
   selectBook: (bookId: string) => void
   selectPage: (pageId: string) => void
   addScorePage: (title: string) => void
   addImagePage: (page: ImagePage) => void
+  updatePageInfo: (pageId: string, info: PageInfoPatch) => void
   addMeasure: () => void
   undo: () => void
   redo: () => void
@@ -250,6 +262,34 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
     }))
   },
 
+  deleteBook: async (bookId) => {
+    const removedBook = get().books.find((book) => book.id === bookId)
+    if (!removedBook) return
+
+    await scoreDb.books.delete(bookId)
+    set((state) => {
+      const pageIds = new Set(removedBook.pages.map((page) => page.id))
+      const history = Object.fromEntries(
+        Object.entries(state.history).filter(([pageId]) => !pageIds.has(pageId)),
+      )
+      const removedActive = state.activeBookId === bookId
+
+      return {
+        books: state.books.filter((book) => book.id !== bookId),
+        activeBookId: removedActive ? null : state.activeBookId,
+        activePageId: removedActive ? null : state.activePageId,
+        isDirty: removedActive ? false : state.isDirty,
+        dirtyBookIds: state.dirtyBookIds.filter((id) => id !== bookId),
+        history,
+        canUndo: removedActive ? false : state.canUndo,
+        canRedo: removedActive ? false : state.canRedo,
+        isSelectMode: removedActive ? false : state.isSelectMode,
+        selectedNodes: removedActive ? [] : state.selectedNodes,
+        clipboard: removedActive ? [] : state.clipboard,
+      }
+    })
+  },
+
   goHome: () => set({
     activeBookId: null,
     activePageId: null,
@@ -316,6 +356,76 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
         canRedo: false,
         isSelectMode: false,
         selectedNodes: [],
+      }
+    }),
+
+  updatePageInfo: (pageId, info) =>
+    set((state) => {
+      const trimmedTitle = info.title.trim().slice(0, 80)
+      if (!trimmedTitle) return {}
+
+      const book = state.books.find((candidate) =>
+        candidate.pages.some((page) => page.id === pageId),
+      )
+      const page = book?.pages.find((candidate) => candidate.id === pageId)
+      if (!book || !page) return {}
+
+      if (page.type === 'score') {
+        const nextPage: ScorePage = {
+          ...page,
+          title: trimmedTitle,
+          subtitle: (info.subtitle ?? page.subtitle)
+            .trim()
+            .slice(0, SCORE_SUBTITLE_MAX_LENGTH),
+          footerLeft: (info.footerLeft ?? page.footerLeft)
+            .trim()
+            .slice(0, PAGE_FOOTER_LEFT_MAX_LENGTH),
+          footerRight: (info.footerRight ?? page.footerRight)
+            .trim()
+            .slice(0, PAGE_FOOTER_RIGHT_MAX_LENGTH),
+        }
+        const changed = nextPage.title !== page.title
+          || nextPage.subtitle !== page.subtitle
+          || nextPage.footerLeft !== page.footerLeft
+          || nextPage.footerRight !== page.footerRight
+        if (!changed) return {}
+
+        const active = findActivePage(state)
+        if (active?.page.id === pageId) {
+          return updateActivePage(state, () => nextPage)
+        }
+
+        const updatedBook: ScoreBook = {
+          ...book,
+          pages: book.pages.map((candidate) =>
+            candidate.id === pageId ? nextPage : candidate,
+          ),
+          updatedAt: new Date().toISOString(),
+        }
+
+        return {
+          books: state.books.map((candidate) =>
+            candidate.id === updatedBook.id ? updatedBook : candidate,
+          ),
+          ...markBookDirty(state, book.id),
+        }
+      }
+
+      if (page.title === trimmedTitle) return {}
+
+      const updatedBook: ScoreBook = {
+        ...book,
+        pages: book.pages.map((candidate) =>
+          candidate.id === pageId ? { ...candidate, title: trimmedTitle } : candidate,
+        ),
+        updatedAt: new Date().toISOString(),
+      }
+
+      return {
+        books: state.books.map((candidate) =>
+          candidate.id === updatedBook.id ? updatedBook : candidate,
+        ),
+        ...markBookDirty(state, book.id),
       }
     }),
 
