@@ -40,13 +40,13 @@ export function CloudSourceDialog({
       onOpenChange={(open) => {
         if (!open) onClose()
       }}
-      title="云端获取"
-      description="从接口获取 ZIP 文件，并导入其中的全部谱本。"
+      title="云端设置"
+      description="修改云端 ZIP 接口和请求头，保存后立即导入一次。"
       footer={(
         <div className="cloud-dialog-footer">
           {source && (
             <button className="text-button" type="button" onClick={onClear}>
-              清除设置
+              恢复默认
             </button>
           )}
           <div className="dialog-footer-actions">
@@ -58,7 +58,7 @@ export function CloudSourceDialog({
               type="submit"
               form="cloud-source-form"
             >
-              保存并获取
+              保存并导入
             </button>
           </div>
         </div>
@@ -95,7 +95,7 @@ export function CloudSourceDialog({
         <p className="cloud-help">
           接口需要直接返回 ZIP 文件，并允许当前页面跨域访问（CORS）。
           如果填写了自定义请求头，接口还需要正确处理跨域预检请求。
-          配置后，每次打开应用进入首页会自动获取一次；未设置时不会请求任何云端接口。
+          只有点击「云端获取」或「保存并导入」时才会请求一次，进入首页不会自动导入。
         </p>
 
         {error && <p className="form-error" role="alert">{error}</p>}

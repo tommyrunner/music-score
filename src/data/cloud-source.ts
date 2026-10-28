@@ -6,9 +6,16 @@ import {
 
 const CLOUD_SOURCE_KEY = 'stringroom:cloud-source'
 
+export const DEFAULT_CLOUD_SOURCE_URL =
+  'https://raw.githubusercontent.com/tommyrunner/music-score-lib/master/music-list.zip'
+
 export interface CloudSource {
   url: string
   headers?: Record<string, string>
+}
+
+export function defaultCloudSource(): CloudSource {
+  return { url: DEFAULT_CLOUD_SOURCE_URL }
 }
 
 export function validateCloudSource(

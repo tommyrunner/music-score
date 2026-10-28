@@ -11,17 +11,19 @@ import {
   FileZip,
   FloppyDisk,
   FolderSimple,
+  GearSix,
   Info,
   PencilSimple,
   Selection,
 } from '@phosphor-icons/react'
 import * as Popover from '@radix-ui/react-popover'
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useRef, useState, type ChangeEvent } from 'react'
 
 import { useScoreStore } from '../../app/use-score-store'
 import { ProgressOverlay } from '../../components/ProgressOverlay'
 import {
   clearCloudSource,
+  defaultCloudSource,
   fetchCloudBooks,
   loadCloudSource,
   saveCloudSource,
@@ -55,8 +57,6 @@ const yieldToUi = () => new Promise<void>((resolve) => {
   setTimeout(resolve, 0)
 })
 
-let cloudAutoFetchAttempted = false
-
 export function WorkspaceToolbar({
   activeBook,
   books,
@@ -79,7 +79,9 @@ export function WorkspaceToolbar({
   const [notice, setNotice] = useState('')
   const [progress, setProgress] = useState<ProgressState | null>(null)
   const [pageInfoOpen, setPageInfoOpen] = useState(false)
-  const [cloudSource, setCloudSource] = useState<CloudSource | null>(loadCloudSource)
+  const [cloudSource, setCloudSource] = useState<CloudSource>(
+    () => loadCloudSource() ?? defaultCloudSource(),
+  )
   const [cloudDialogOpen, setCloudDialogOpen] = useState(false)
 
   const activePage = activeBook?.pages.find((page) => page.id === activePageId)
@@ -88,7 +90,7 @@ export function WorkspaceToolbar({
     setProgress({ label, value, detail })
   }
 
-  const runCloudFetch = useCallback(async (source: CloudSource) => {
+  const runCloudFetch = async (source: CloudSource) => {
     setWorking(true)
     setNotice('')
     setProgress({
@@ -125,22 +127,16 @@ export function WorkspaceToolbar({
       setWorking(false)
       setProgress(null)
     }
-  }, [importBooks])
+  }
 
-  useEffect(() => {
-    if (activeBook || !cloudSource || cloudAutoFetchAttempted) return
-    const timer = window.setTimeout(() => {
-      cloudAutoFetchAttempted = true
-      void runCloudFetch(cloudSource)
-    }, 0)
-    return () => window.clearTimeout(timer)
-  }, [activeBook, cloudSource, runCloudFetch])
+  const importFromCloud = () => {
+    void runCloudFetch(cloudSource)
+  }
 
   const saveCloudSourceSetting = (source: CloudSource) => {
     const saved = saveCloudSource(source)
     setCloudSource(source)
     setCloudDialogOpen(false)
-    cloudAutoFetchAttempted = true
     if (!saved) {
       setNotice('云端设置无法保存到本地，本次仍会尝试获取')
     }
@@ -149,9 +145,9 @@ export function WorkspaceToolbar({
 
   const clearCloudSourceSetting = () => {
     clearCloudSource()
-    setCloudSource(null)
+    setCloudSource(defaultCloudSource())
     setCloudDialogOpen(false)
-    setNotice('已清除云端接口设置')
+    setNotice('已恢复默认云端地址')
   }
 
   const save = async () => {
@@ -425,16 +421,23 @@ export function WorkspaceToolbar({
               <>
                 <div className="file-popover-separator" />
                 <Popover.Close asChild>
+                  <button onClick={importFromCloud} disabled={isWorking}>
+                    <CloudArrowDown size={19} />
+                    <span>
+                      <strong>云端获取</strong>
+                      <small>从云端 ZIP 导入全部谱本</small>
+                    </span>
+                  </button>
+                </Popover.Close>
+                <Popover.Close asChild>
                   <button
                     onClick={() => setCloudDialogOpen(true)}
                     disabled={isWorking}
                   >
-                    <CloudArrowDown size={19} />
+                    <GearSix size={19} />
                     <span>
-                      <strong>云端获取</strong>
-                      <small>
-                        {cloudSource ? '从已保存的接口获取 ZIP' : '配置 API 后自动获取'}
-                      </small>
+                      <strong>云端设置</strong>
+                      <small>修改 API 地址与请求头</small>
                     </span>
                   </button>
                 </Popover.Close>
