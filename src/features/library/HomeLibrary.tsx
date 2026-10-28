@@ -38,7 +38,7 @@ export function HomeLibrary({ books, onCreateBook }: HomeLibraryProps) {
       <main id="top" className="home-main">
         <section className="home-hero">
           <div className="hero-copy">
-            <p>你的吉他谱，都在这里</p>
+            <p>你的吉他谱，都在1这里</p>
             <h1>想到一段旋律，<br />就把它写下来。</h1>
             <span>不用学习复杂的制谱软件。打开谱本，直接点在六根弦上。</span>
           </div>
