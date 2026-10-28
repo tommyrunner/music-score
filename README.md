@@ -10,4 +10,4 @@
 
 线上环境为静态站点：`npm run build` 产出 `dist/`，由 nginx 托管。
 
-每次 push 自动打包部署到宝塔服务器的配置步骤见 [docs/deploy.md](docs/deploy.md)，发布脚本与 nginx 配置在 `deploy/` 目录。
+自动构建部署（CI）流程见 [deploy.md](deploy.md)，首次搭建与完整排查手册见 [docs/deploy.md](docs/deploy.md)，发布脚本与 nginx 配置在 `deploy/` 目录。
