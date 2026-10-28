@@ -170,8 +170,8 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
       const books = storedBooks.map((book) => scoreBookSchema.parse(book))
       set({
         books,
-        activeBookId: books[0]?.id ?? null,
-        activePageId: books[0]?.pages[0]?.id ?? null,
+        activeBookId: null,
+        activePageId: null,
         isDirty: false,
         dirtyBookIds: [],
         isHydrated: true,

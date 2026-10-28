@@ -45,6 +45,8 @@ describe('score store persistence', () => {
     await useScoreStore.getState().hydrate()
     await useScoreStore.getState().importBooks([imported, importedReplacement])
 
+    expect(useScoreStore.getState().activeBookId).toBeNull()
+    expect(useScoreStore.getState().activePageId).toBeNull()
     expect(useScoreStore.getState().books.map((book) => book.title)).toEqual([
       '已经保存',
       '覆盖后的标题',
