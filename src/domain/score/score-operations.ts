@@ -13,13 +13,22 @@ import {
 } from './score-document'
 import { createId } from './id'
 
-/** 剪贴板中的单个音符。 */
+/**
+ * 剪贴板中的单个音符。
+ */
 export interface ScoreClipboardNote {
   string: number
   fret: FretValue
 }
 
-/** 在谱本末尾追加一个页面。 */
+/**
+ * 在谱本末尾追加一个页面。
+ *
+ * @param book 原始谱本。
+ * @param page 要追加的页面。
+ * @param updatedAt 谱本更新时间。
+ * @returns 更新后的谱本。
+ */
 export function appendPage(
   book: ScoreBook,
   page: ScoreBookPage,
@@ -32,7 +41,12 @@ export function appendPage(
   }
 }
 
-/** 在六线谱页末尾追加一个默认小节。 */
+/**
+ * 在六线谱页末尾追加一个默认小节。
+ *
+ * @param page 原始页面。
+ * @returns 追加小节后的页面。
+ */
 export function addMeasure(page: ScorePage): ScorePage {
   return {
     ...page,
@@ -40,7 +54,15 @@ export function addMeasure(page: ScorePage): ScorePage {
   }
 }
 
-/** 设置或清除指定位置的和弦。 */
+/**
+ * 设置或清除指定位置的和弦。
+ *
+ * @param page 原始页面。
+ * @param measureId 目标小节 ID。
+ * @param positionId 目标和弦位置 ID。
+ * @param chord 和弦名称，空字符串表示清除。
+ * @returns 更新后的页面。
+ */
 export function setChord(
   page: ScorePage,
   measureId: string,
@@ -64,7 +86,15 @@ export function setChord(
   }
 }
 
-/** 设置或清除指定位置的小节线。 */
+/**
+ * 设置或清除指定位置的小节线。
+ *
+ * @param page 原始页面。
+ * @param measureId 目标小节 ID。
+ * @param positionId 目标位置 ID。
+ * @param barline 小节线样式，null 表示清除。
+ * @returns 更新后的页面。
+ */
 export function setBarline(
   page: ScorePage,
   measureId: string,
@@ -88,7 +118,14 @@ export function setBarline(
   }
 }
 
-/** 在指定小节添加或替换符号。 */
+/**
+ * 在指定小节添加或替换符号。
+ *
+ * @param page 原始页面。
+ * @param measureId 目标小节 ID。
+ * @param symbol 不包含 ID 的符号数据。
+ * @returns 更新后的页面。
+ */
 export function addSymbol(
   page: ScorePage,
   measureId: string,
@@ -100,6 +137,7 @@ export function addSymbol(
       if (measure.id !== measureId) return measure
 
       const nextSymbol: ScoreSymbol = { ...symbol, id: createId() }
+      // 同一类型且起点相同的符号只保留最新的一个。
       const symbols = [
         ...measure.symbols.filter(
           (candidate) =>
@@ -114,7 +152,14 @@ export function addSymbol(
   }
 }
 
-/** 从指定小节移除符号。 */
+/**
+ * 从指定小节移除符号。
+ *
+ * @param page 原始页面。
+ * @param measureId 目标小节 ID。
+ * @param symbolId 要移除的符号 ID。
+ * @returns 更新后的页面。
+ */
 export function removeSymbol(
   page: ScorePage,
   measureId: string,
@@ -133,7 +178,15 @@ export function removeSymbol(
   }
 }
 
-/** 用一批音符替换指定位置的所有音符。 */
+/**
+ * 用一批音符替换指定位置的所有音符。
+ *
+ * @param page 原始页面。
+ * @param measureId 目标小节 ID。
+ * @param positionId 目标位置 ID。
+ * @param notes 替换后的音符列表。
+ * @returns 更新后的页面。
+ */
 export function setPositionNotes(
   page: ScorePage,
   measureId: string,
@@ -162,7 +215,17 @@ export function setPositionNotes(
   }
 }
 
-/** 从指定位置开始，将音符依次粘贴到后续位置。 */
+/**
+ * 从指定位置开始，将音符依次粘贴到后续位置。
+ *
+ * 粘贴会按列顺序展开，因此可以跨小节连续写入。
+ *
+ * @param page 原始页面。
+ * @param measureId 起点小节 ID。
+ * @param positionId 起点位置 ID。
+ * @param notes 要粘贴的音符列表。
+ * @returns 更新后的页面。
+ */
 export function pasteNotesFrom(
   page: ScorePage,
   measureId: string,
@@ -171,6 +234,7 @@ export function pasteNotesFrom(
 ): ScorePage {
   if (notes.length === 0) return page
 
+  // 先按小节和列展开，保证跨小节粘贴时顺序连续。
   const flatPositions = page.measures.flatMap((measure) =>
     measure.positions.map((position) => ({
       measureId: measure.id,
@@ -218,7 +282,15 @@ export function pasteNotesFrom(
   }
 }
 
-/** 设置、追加或删除某一行歌词。 */
+/**
+ * 设置、追加或删除某一行歌词。
+ *
+ * @param page 原始页面。
+ * @param measureId 目标小节 ID。
+ * @param lyricIndex 歌词行索引；等于当前行数时表示追加。
+ * @param text 歌词内容，null 或空字符串表示删除。
+ * @returns 更新后的页面。
+ */
 export function setLyricLine(
   page: ScorePage,
   measureId: string,
@@ -248,7 +320,14 @@ export function setLyricLine(
   }
 }
 
-/** 用新页面替换谱本中的对应页面，并更新谱本时间。 */
+/**
+ * 用新页面替换谱本中的对应页面，并更新谱本时间。
+ *
+ * @param book 原始谱本。
+ * @param page 更新后的页面。
+ * @param updatedAt 谱本更新时间。
+ * @returns 更新后的谱本。
+ */
 export function updateScorePage(
   book: ScoreBook,
   page: ScorePage,

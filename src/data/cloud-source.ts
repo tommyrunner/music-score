@@ -10,17 +10,25 @@ import {
 
 const CLOUD_SOURCE_KEY = 'stringroom:cloud-source'
 
-/** 默认的云端谱本 ZIP 地址。 */
+/**
+ * 默认的云端谱本 ZIP 地址。
+ */
 export const DEFAULT_CLOUD_SOURCE_URL =
   'https://raw.githubusercontent.com/tommyrunner/music-score/master/library/music-list.zip'
 
-/** 云端 ZIP 数据源配置。 */
+/**
+ * 云端 ZIP 数据源配置。
+ */
 export interface CloudSource {
   url: string
   headers?: Record<string, string>
 }
 
-/** 返回默认云端数据源配置。 */
+/**
+ * 返回默认云端数据源配置。
+ *
+ * @returns 只包含默认 ZIP 地址的数据源。
+ */
 export function defaultCloudSource(): CloudSource {
   return { url: DEFAULT_CLOUD_SOURCE_URL }
 }
@@ -28,6 +36,9 @@ export function defaultCloudSource(): CloudSource {
 /**
  * 校验并规范化云端 API 地址与请求头 JSON。
  *
+ * @param urlInput 用户输入的 API 地址。
+ * @param headersText 可选的请求头 JSON 文本。
+ * @returns 规范化后的云端数据源配置。
  * @throws 当地址协议、JSON 格式或请求头类型不合法时抛出错误。
  */
 export function validateCloudSource(
@@ -60,6 +71,7 @@ export function validateCloudSource(
     throw new Error('请求头必须是 JSON 对象')
   }
 
+  // 请求头只接受 JSON 对象中的字符串键值。
   const headers: Record<string, string> = {}
   for (const [key, headerValue] of Object.entries(value)) {
     if (!key.trim()) throw new Error('请求头名称不能为空')
@@ -98,6 +110,7 @@ export function loadCloudSource(): CloudSource | null {
 /**
  * 将云端数据源配置写入本地存储。
  *
+ * @param source 要保存的云端数据源配置。
  * @returns 是否写入成功。
  */
 export function saveCloudSource(source: CloudSource): boolean {
@@ -110,7 +123,10 @@ export function saveCloudSource(source: CloudSource): boolean {
   }
 }
 
-/** 清除本地保存的云端数据源配置；本地存储不可用时静默忽略。 */
+/**
+ * 清除本地保存的云端数据源配置。
+ * 本地存储不可用时静默忽略。
+ */
 export function clearCloudSource(): void {
   if (typeof window === 'undefined') return
   try {
@@ -125,6 +141,7 @@ export function clearCloudSource(): void {
  *
  * @param source 云端数据源地址与可选请求头。
  * @param onProgress 下载与解析进度回调。
+ * @returns 解析出的谱本和失败信息。
  */
 export async function fetchCloudBooks(
   source: CloudSource,
@@ -152,6 +169,7 @@ export async function fetchCloudBooks(
   if (blob.size === 0) throw new Error('云端返回的文件是空的')
 
   onProgress?.(12, '正在解压云端 ZIP…')
+  // 下载和解析共用 12%–92% 的进度区间。
   const file = new File([blob], '云端谱本.zip', { type: 'application/zip' })
   return parseScoreBookFiles([file], (value, detail) => {
     onProgress?.(Math.round(12 + value * 0.8), detail)

@@ -11,7 +11,11 @@ interface BookDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-/** 新建谱本弹框。 */
+/**
+ * 新建谱本弹框。
+ *
+ * @param props 弹框开关状态与关闭回调。
+ */
 export function CreateBookDialog({ open, onOpenChange }: BookDialogProps) {
   const createBook = useScoreStore((state) => state.createBook)
   const [title, setTitle] = useState('')
@@ -52,7 +56,11 @@ export function CreateBookDialog({ open, onOpenChange }: BookDialogProps) {
   )
 }
 
-/** 新增六线谱页或图片页的弹框。 */
+/**
+ * 新增六线谱页或图片页的弹框。
+ *
+ * @param props 弹框开关状态与关闭回调。
+ */
 export function AddPageDialog({ open, onOpenChange }: BookDialogProps) {
   const addScorePage = useScoreStore((state) => state.addScorePage)
   const addImagePage = useScoreStore((state) => state.addImagePage)

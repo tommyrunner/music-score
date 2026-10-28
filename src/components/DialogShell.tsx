@@ -13,7 +13,11 @@ interface DialogShellProps {
   dismissible?: boolean
 }
 
-/** 统一的模态弹框外壳。 */
+/**
+ * 统一的模态弹框外壳。
+ *
+ * @param props 弹框开关、标题、内容、底部区域和关闭行为配置。
+ */
 export function DialogShell({
   open,
   onOpenChange,

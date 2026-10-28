@@ -6,6 +6,9 @@ import Dexie, { type Table } from 'dexie'
 
 import type { ScoreBook } from '../domain/score/score-document'
 
+/**
+ * 谱本 IndexedDB 数据库。
+ */
 export class ScoreDatabase extends Dexie {
   books!: Table<ScoreBook, string>
 
@@ -17,4 +20,7 @@ export class ScoreDatabase extends Dexie {
   }
 }
 
+/**
+ * 全局谱本数据库实例。
+ */
 export const scoreDb = new ScoreDatabase()

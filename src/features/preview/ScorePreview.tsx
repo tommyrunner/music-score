@@ -58,6 +58,7 @@ function PreviewPageStage({
 
       if (availableWidth <= 0 || availableHeight <= 0) return
 
+      // 初始缩放不超过 1，保证纸张在小屏幕上完整可见。
       const fitScale = Math.min(
         1,
         availableWidth / PAPER_WIDTH,
@@ -190,7 +191,11 @@ function ImagePaper({ page, pageNumber }: { page: ImagePage; pageNumber: number 
   )
 }
 
-/** 整本谱本的只读纸张预览。 */
+/**
+ * 整本谱本的只读纸张预览。
+ *
+ * @param props 预览开关、谱本内容与开关状态回调。
+ */
 export function ScorePreview({
   open,
   book,

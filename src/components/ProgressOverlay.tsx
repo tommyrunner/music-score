@@ -7,7 +7,13 @@ interface ProgressOverlayProps {
   detail?: string
 }
 
-/** 不可关闭的操作进度浮层。 */
+/**
+ * 不可关闭的操作进度浮层。
+ *
+ * 用于导入、导出等无法中途取消的操作，展示当前步骤和百分比。
+ *
+ * @param props 操作名称、进度值和补充说明。
+ */
 export function ProgressOverlay({ label, value, detail }: ProgressOverlayProps) {
   const percent = Math.max(0, Math.min(100, Math.round(value)))
 

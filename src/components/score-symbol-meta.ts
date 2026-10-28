@@ -5,14 +5,18 @@ import type {
   StringRange,
 } from '../domain/score/score-document'
 
-/** 扫弦范围的中文标签。 */
+/**
+ * 扫弦范围的中文标签。
+ */
 export const STRING_RANGE_LABELS: Record<StringRange, string> = {
   upper: '上弦',
   lower: '下弦',
   all: '全弦',
 }
 
-/** 乐谱符号的中文标签。 */
+/**
+ * 乐谱符号的中文标签。
+ */
 export const SCORE_SYMBOL_LABELS: Record<ScoreSymbolType, string> = {
   arpeggio: '琶音',
   sweep: '扫弦',
@@ -21,7 +25,13 @@ export const SCORE_SYMBOL_LABELS: Record<ScoreSymbolType, string> = {
   'pull-off': '勾弦 P',
 }
 
-/** 生成符号在界面和无障碍文本中显示的名称。 */
+/**
+ * 生成符号在界面和无障碍文本中显示的名称。
+ *
+ * @param symbol 乐谱符号。
+ * @param positions 当前小节的位置列表。
+ * @returns 带范围或列号说明的符号名称。
+ */
 export function scoreSymbolLabel(
   symbol: ScoreSymbol,
   positions: ScorePosition[],

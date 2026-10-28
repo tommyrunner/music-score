@@ -56,7 +56,13 @@ const yieldToUi = () => new Promise<void>((resolve) => {
   setTimeout(resolve, 0)
 })
 
-/** 首页与编辑页共用的数据、编辑和预览工具栏。 */
+/**
+ * 首页与编辑页共用的数据、编辑和预览工具栏。
+ *
+ * 负责保存、导入导出、云端获取、编辑菜单和预览入口。
+ *
+ * @param props 当前谱本、全部谱本、脏状态与预览回调。
+ */
 export function WorkspaceToolbar({
   activeBook,
   books,

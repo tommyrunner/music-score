@@ -137,7 +137,11 @@ interface ScoreSymbolLayerProps {
   onSymbolClick?: (symbol: ScoreSymbol) => void
 }
 
-/** 在谱面上渲染各类乐谱符号。 */
+/**
+ * 在谱面上渲染各类乐谱符号。
+ *
+ * @param props 当前小节的符号、音符位置以及符号点击回调。
+ */
 export function ScoreSymbolLayer({
   symbols,
   positions,

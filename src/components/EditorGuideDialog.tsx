@@ -5,7 +5,11 @@ interface EditorGuideDialogProps {
   onClose: () => void
 }
 
-/** 首次进入编辑器时显示的操作说明弹框。 */
+/**
+ * 首次进入编辑器时显示的操作说明弹框。
+ *
+ * @param props 弹框开关状态与关闭回调。
+ */
 export function EditorGuideDialog({ open, onClose }: EditorGuideDialogProps) {
   return (
     <DialogShell

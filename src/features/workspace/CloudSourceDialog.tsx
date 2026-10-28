@@ -13,7 +13,13 @@ interface CloudSourceDialogProps {
   onClear: () => void
 }
 
-/** 云端 ZIP 地址与请求头设置弹框。 */
+/**
+ * 云端 ZIP 地址与请求头设置弹框。
+ *
+ * 保存设置后由用户点击「导入」触发一次云端拉取。
+ *
+ * @param props 当前配置、关闭、保存和恢复默认回调。
+ */
 export function CloudSourceDialog({
   source,
   onClose,

@@ -127,7 +127,13 @@ function MultiNoteSwatch() {
   )
 }
 
-/** 六线谱页面编辑器。 */
+/**
+ * 六线谱页面编辑器。
+ *
+ * 负责音符、和弦、符号、歌词、多选和框选等页面内编辑操作。
+ *
+ * @param props 当前六线谱页面。
+ */
 export function ScoreEditor({ page }: { page: ScorePage }) {
   const updateFret = useScoreStore((state) => state.updateFret)
   const updateChord = useScoreStore((state) => state.updateChord)
@@ -522,6 +528,7 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
       )
       return Array.from(nodes).flatMap((node) => {
         const nodeRect = node.getBoundingClientRect()
+        // 用节点中心点判断框选，避免边缘擦过时误选。
         const centerX = nodeRect.left + nodeRect.width / 2
         const centerY = nodeRect.top + nodeRect.height / 2
         const inside = centerX >= rect.left

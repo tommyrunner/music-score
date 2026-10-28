@@ -4,7 +4,11 @@
 
 const EDITOR_GUIDE_SEEN_KEY = 'stringroom:editor-guide-seen'
 
-/** 判断用户是否已经看过编辑器首次操作提示。 */
+/**
+ * 判断用户是否已经看过编辑器首次操作提示。
+ *
+ * @returns 已经看过时返回 true。
+ */
 export function hasSeenEditorGuide(): boolean {
   if (typeof window === 'undefined') return false
   try {

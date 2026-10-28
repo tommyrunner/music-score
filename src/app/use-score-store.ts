@@ -150,6 +150,7 @@ function updateActivePage(
   const nextPage = transform(page)
   const updatedBook = updateScorePage(book, nextPage)
   const history = state.history[page.id] ?? { past: [], future: [] }
+  // 每页只保留最近 60 步，避免长时间编辑占用过多内存。
   const past = [...history.past, page].slice(-HISTORY_LIMIT)
 
   return {
@@ -166,7 +167,11 @@ function updateActivePage(
   }
 }
 
-/** 全局谱本 store。 */
+/**
+ * 全局谱本 store。
+ *
+ * 集中管理谱本数据、当前页面、编辑历史、选择状态和持久化动作。
+ */
 export const useScoreStore = create<ScoreStore>((set, get) => ({
   books: [],
   activeBookId: null,
@@ -232,6 +237,7 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
         ...uniqueBooks,
       ]
       const activeBook = uniqueBooks[0]
+      // 从首页批量导入时保持首页；从编辑页导入时才切换到导入的谱本。
       const stayHome = state.activeBookId === null
       const dirtyBookIds = state.dirtyBookIds.filter((bookId) => !importedIds.has(bookId))
       return {

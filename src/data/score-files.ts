@@ -12,16 +12,22 @@ import {
 const MAX_JSON_BYTES = 15 * 1024 * 1024
 const MAX_ARCHIVE_BYTES = 80 * 1024 * 1024
 
-/** 文件导入导出进度回调。 */
+/**
+ * 文件导入导出进度回调。
+ */
 export type FileProgress = (progress: number, detail: string) => void
 
-/** 单个文件导入失败的信息。 */
+/**
+ * 单个文件导入失败的信息。
+ */
 export interface ImportError {
   fileName: string
   message: string
 }
 
-/** 批量导入结果。 */
+/**
+ * 批量导入结果。
+ */
 export interface ImportResult {
   books: ScoreBook[]
   errors: ImportError[]
@@ -87,17 +93,34 @@ export function normalizeImageUrl(input: string): string {
   }
 }
 
-/** 生成单本谱本导出时使用的文件名。 */
+/**
+ * 生成单本谱本导出时使用的文件名。
+ *
+ * @param book 谱本数据。
+ * @returns 适合保存到本地文件系统的文件名。
+ */
 export function scoreBookFileName(book: ScoreBook): string {
   return `${safeFileTitle(book.title) || '未命名谱本'}.stringroom.json`
 }
 
-/** 生成单页导出时使用的文件名。 */
+/**
+ * 生成单页导出时使用的文件名。
+ *
+ * @param book 谱本数据。
+ * @param page 页面数据。
+ * @returns 包含谱本名和页面名的 JSON 文件名。
+ */
 export function scorePageFileName(book: ScoreBook, page: ScoreBookPage): string {
   return `${safeFileTitle(book.title)}-${safeFileTitle(page.title)}.stringroom.json`
 }
 
-/** 将单个页面包装成只包含该页的谱本文档。 */
+/**
+ * 将单个页面包装成只包含该页的谱本文档。
+ *
+ * @param book 原谱本，用于生成新谱本标题。
+ * @param page 要导出的页面。
+ * @returns 可以重新导入的单页谱本文档。
+ */
 export function scorePageAsBook(book: ScoreBook, page: ScoreBookPage): ScoreBook {
   const pageBook = createScoreBook(`${book.title} · ${page.title}`.slice(0, 80))
   return {
@@ -106,7 +129,16 @@ export function scorePageAsBook(book: ScoreBook, page: ScoreBookPage): ScoreBook
   }
 }
 
-/** 解压 ZIP 并逐个解析其中的谱本 JSON。 */
+/**
+ * 解压 ZIP 并逐个解析其中的谱本 JSON。
+ *
+ * @param file ZIP 文件。
+ * @param startProgress 该文件起始进度。
+ * @param endProgress 该文件结束进度。
+ * @param books 解析成功的谱本收集数组。
+ * @param errors 解析失败信息收集数组。
+ * @param onProgress 进度回调。
+ */
 async function importZipFile(
   file: File,
   startProgress: number,
@@ -124,6 +156,7 @@ async function importZipFile(
   let archive: Record<string, Uint8Array>
   try {
     archive = unzipSync(new Uint8Array(await readFileBuffer(file)), {
+      // 只解压 JSON，并跳过 Mac 元数据和超大条目。
       filter: (entry) =>
         isJsonEntry(entry.name)
         && (!entry.originalSize || entry.originalSize <= MAX_JSON_BYTES),
@@ -172,6 +205,7 @@ export async function parseScoreBookFiles(
 
   for (let index = 0; index < files.length; index += 1) {
     const file = files[index]
+    // 每个文件占据固定进度区间，ZIP 内再按条目数量分摊。
     const startProgress = 2 + (88 * index) / files.length
     const endProgress = 2 + (88 * (index + 1)) / files.length
 
@@ -198,7 +232,12 @@ export async function parseScoreBookFiles(
   return { books, errors }
 }
 
-/** 触发浏览器下载指定 Blob。 */
+/**
+ * 触发浏览器下载指定 Blob。
+ *
+ * @param blob 文件内容。
+ * @param fileName 下载文件名。
+ */
 function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
@@ -208,13 +247,22 @@ function downloadBlob(blob: Blob, fileName: string): void {
   URL.revokeObjectURL(url)
 }
 
-/** 将整本谱本下载为 JSON 文件。 */
+/**
+ * 将整本谱本下载为 JSON 文件。
+ *
+ * @param book 要导出的谱本。
+ */
 export function downloadScoreBook(book: ScoreBook): void {
   const json = JSON.stringify(book, null, 2)
   downloadBlob(new Blob([json], { type: 'application/json' }), scoreBookFileName(book))
 }
 
-/** 将当前页面下载为只包含该页的 JSON 文件。 */
+/**
+ * 将当前页面下载为只包含该页的 JSON 文件。
+ *
+ * @param book 页面所属谱本。
+ * @param page 要导出的页面。
+ */
 export function downloadScorePage(book: ScoreBook, page: ScoreBookPage): void {
   const json = JSON.stringify(scorePageAsBook(book, page), null, 2)
   downloadBlob(new Blob([json], { type: 'application/json' }), scorePageFileName(book, page))
@@ -231,6 +279,7 @@ export function scoreBookArchiveEntries(books: ScoreBook[]): Record<string, stri
     const fileName = scoreBookFileName(book)
     const suffix = '.stringroom.json'
     const baseName = fileName.slice(0, -suffix.length)
+    // 同名谱本自动追加序号，避免 ZIP 内条目互相覆盖。
     let uniqueName = fileName
     let copyNumber = 2
     while (uniqueName in entries) {
@@ -243,7 +292,12 @@ export function scoreBookArchiveEntries(books: ScoreBook[]): Record<string, stri
   return entries
 }
 
-/** 将全部谱本打包为 ZIP 并下载。 */
+/**
+ * 将全部谱本打包为 ZIP 并下载。
+ *
+ * @param books 要打包的谱本列表。
+ * @param onProgress 打包进度回调。
+ */
 export async function downloadScoreBooksArchive(
   books: ScoreBook[],
   onProgress?: FileProgress,

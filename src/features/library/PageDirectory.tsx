@@ -5,7 +5,11 @@ import { useState } from 'react'
 import { useScoreStore } from '../../app/use-score-store'
 import type { ScoreBook } from '../../domain/score/score-document'
 
-/** 编辑器页面目录弹层。 */
+/**
+ * 编辑器页面目录弹层。
+ *
+ * @param props 当前谱本与新增页面回调。
+ */
 export function PageDirectory({ book, onAddPage }: { book: ScoreBook; onAddPage: () => void }) {
   const activePageId = useScoreStore((state) => state.activePageId)
   const selectPage = useScoreStore((state) => state.selectPage)
