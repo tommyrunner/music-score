@@ -1,3 +1,7 @@
+/**
+ * 本地 IndexedDB 谱本存储。
+ */
+
 import Dexie, { type Table } from 'dexie'
 
 import type { ScoreBook } from '../domain/score/score-document'

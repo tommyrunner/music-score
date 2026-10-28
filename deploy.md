@@ -92,7 +92,6 @@ location ~* \.(?:js|css|woff2?|ttf|otf|svg|png|jpe?g|gif|webp|avif|ico)$ {
 
 ```bash
 # 1. 本地改代码、自测
-npm test
 npm run build
 
 # 2. 提交并推送（push 才会触发部署，本地 commit 不会）

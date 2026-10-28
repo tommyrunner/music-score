@@ -12,6 +12,7 @@ import { PageDirectory } from './features/library/PageDirectory'
 import { ScorePreview } from './features/preview/ScorePreview'
 import { WorkspaceToolbar } from './features/workspace/WorkspaceToolbar'
 
+/** 应用根组件，根据当前谱本状态切换首页与编辑器。 */
 export function App() {
   const [isBookDialogOpen, setBookDialogOpen] = useState(false)
   const [isPageDialogOpen, setPageDialogOpen] = useState(false)

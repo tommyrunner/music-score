@@ -190,6 +190,7 @@ function ImagePaper({ page, pageNumber }: { page: ImagePage; pageNumber: number 
   )
 }
 
+/** 整本谱本的只读纸张预览。 */
 export function ScorePreview({
   open,
   book,

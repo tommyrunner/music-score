@@ -80,7 +80,6 @@
 ```bash
 npm install
 npm run dev      # 本地开发
-npm test         # 单元测试
 npm run build    # 构建静态站点
 ```
 

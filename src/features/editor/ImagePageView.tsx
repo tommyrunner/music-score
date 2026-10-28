@@ -2,6 +2,7 @@ import { FileImage } from '@phosphor-icons/react'
 
 import type { ImagePage } from '../../domain/score/score-document'
 
+/** 图片参考页面视图。 */
 export function ImagePageView({ page }: { page: ImagePage }) {
   return (
     <section className="image-page" aria-label={`${page.title}图片页面`}>

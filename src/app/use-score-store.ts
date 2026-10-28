@@ -1,3 +1,7 @@
+/**
+ * 应用级谱本状态、编辑历史与 IndexedDB 持久化。
+ */
+
 import { create } from 'zustand'
 
 import {
@@ -30,13 +34,13 @@ import {
   type ScoreClipboardNote,
 } from '../domain/score/score-operations'
 
-export interface SelectedNode {
+interface SelectedNode {
   measureId: string
   positionId: string
   stringNumber: number
 }
 
-export interface PageInfoPatch {
+interface PageInfoPatch {
   title: string
   subtitle?: string
   footerLeft?: string
@@ -162,6 +166,7 @@ function updateActivePage(
   }
 }
 
+/** 全局谱本 store。 */
 export const useScoreStore = create<ScoreStore>((set, get) => ({
   books: [],
   activeBookId: null,

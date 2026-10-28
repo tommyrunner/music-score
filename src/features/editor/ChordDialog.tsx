@@ -10,6 +10,7 @@ interface ChordDialogProps {
   onChoose: (chord: string) => void
 }
 
+/** 和弦选择弹框。 */
 export function ChordDialog({ open, onOpenChange, onChoose }: ChordDialogProps) {
   const [customChord, setCustomChord] = useState('')
 

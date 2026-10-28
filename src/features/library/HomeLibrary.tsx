@@ -18,6 +18,7 @@ function bookDate(book: ScoreBook) {
   }).format(new Date(book.updatedAt))
 }
 
+/** 首页谱本列表与谱本删除入口。 */
 export function HomeLibrary({ books, onCreateBook }: HomeLibraryProps) {
   const selectBook = useScoreStore((state) => state.selectBook)
   const deleteBook = useScoreStore((state) => state.deleteBook)

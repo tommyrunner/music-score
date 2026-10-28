@@ -14,6 +14,7 @@ interface PageInfoDialogProps {
   onClose: () => void
 }
 
+/** 编辑当前页面标题、副标题和页脚的弹框。 */
 export function PageInfoDialog({ page, onClose }: PageInfoDialogProps) {
   const updatePageInfo = useScoreStore((state) => state.updatePageInfo)
   const [title, setTitle] = useState(page.title)

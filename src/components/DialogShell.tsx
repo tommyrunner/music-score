@@ -13,6 +13,7 @@ interface DialogShellProps {
   dismissible?: boolean
 }
 
+/** 统一的模态弹框外壳。 */
 export function DialogShell({
   open,
   onOpenChange,

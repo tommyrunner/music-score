@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useScoreStore } from '../../app/use-score-store'
 import type { ScoreBook } from '../../domain/score/score-document'
 
+/** 编辑器页面目录弹层。 */
 export function PageDirectory({ book, onAddPage }: { book: ScoreBook; onAddPage: () => void }) {
   const activePageId = useScoreStore((state) => state.activePageId)
   const selectPage = useScoreStore((state) => state.selectPage)

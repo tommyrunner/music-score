@@ -7,6 +7,7 @@ interface ProgressOverlayProps {
   detail?: string
 }
 
+/** 不可关闭的操作进度浮层。 */
 export function ProgressOverlay({ label, value, detail }: ProgressOverlayProps) {
   const percent = Math.max(0, Math.min(100, Math.round(value)))
 

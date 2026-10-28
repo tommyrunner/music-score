@@ -1,3 +1,7 @@
+/**
+ * 对谱本、页面和小节执行不可变更新操作。
+ */
+
 import {
   createMeasure,
   type BarlineStyle,
@@ -9,11 +13,13 @@ import {
 } from './score-document'
 import { createId } from './id'
 
+/** 剪贴板中的单个音符。 */
 export interface ScoreClipboardNote {
   string: number
   fret: FretValue
 }
 
+/** 在谱本末尾追加一个页面。 */
 export function appendPage(
   book: ScoreBook,
   page: ScoreBookPage,
@@ -26,6 +32,7 @@ export function appendPage(
   }
 }
 
+/** 在六线谱页末尾追加一个默认小节。 */
 export function addMeasure(page: ScorePage): ScorePage {
   return {
     ...page,
@@ -33,6 +40,7 @@ export function addMeasure(page: ScorePage): ScorePage {
   }
 }
 
+/** 设置或清除指定位置的和弦。 */
 export function setChord(
   page: ScorePage,
   measureId: string,
@@ -56,6 +64,7 @@ export function setChord(
   }
 }
 
+/** 设置或清除指定位置的小节线。 */
 export function setBarline(
   page: ScorePage,
   measureId: string,
@@ -79,6 +88,7 @@ export function setBarline(
   }
 }
 
+/** 在指定小节添加或替换符号。 */
 export function addSymbol(
   page: ScorePage,
   measureId: string,
@@ -104,6 +114,7 @@ export function addSymbol(
   }
 }
 
+/** 从指定小节移除符号。 */
 export function removeSymbol(
   page: ScorePage,
   measureId: string,
@@ -122,6 +133,7 @@ export function removeSymbol(
   }
 }
 
+/** 用一批音符替换指定位置的所有音符。 */
 export function setPositionNotes(
   page: ScorePage,
   measureId: string,
@@ -150,6 +162,7 @@ export function setPositionNotes(
   }
 }
 
+/** 从指定位置开始，将音符依次粘贴到后续位置。 */
 export function pasteNotesFrom(
   page: ScorePage,
   measureId: string,
@@ -205,6 +218,7 @@ export function pasteNotesFrom(
   }
 }
 
+/** 设置、追加或删除某一行歌词。 */
 export function setLyricLine(
   page: ScorePage,
   measureId: string,
@@ -234,6 +248,7 @@ export function setLyricLine(
   }
 }
 
+/** 用新页面替换谱本中的对应页面，并更新谱本时间。 */
 export function updateScorePage(
   book: ScoreBook,
   page: ScorePage,

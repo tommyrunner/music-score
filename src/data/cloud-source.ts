@@ -1,3 +1,7 @@
+/**
+ * 云端 ZIP 数据源的配置、持久化与请求。
+ */
+
 import {
   parseScoreBookFiles,
   type FileProgress,
@@ -6,18 +10,26 @@ import {
 
 const CLOUD_SOURCE_KEY = 'stringroom:cloud-source'
 
+/** 默认的云端谱本 ZIP 地址。 */
 export const DEFAULT_CLOUD_SOURCE_URL =
-  'https://raw.githubusercontent.com/tommyrunner/music-score-lib/master/music-list.zip'
+  'https://raw.githubusercontent.com/tommyrunner/music-score/master/library/music-list.zip'
 
+/** 云端 ZIP 数据源配置。 */
 export interface CloudSource {
   url: string
   headers?: Record<string, string>
 }
 
+/** 返回默认云端数据源配置。 */
 export function defaultCloudSource(): CloudSource {
   return { url: DEFAULT_CLOUD_SOURCE_URL }
 }
 
+/**
+ * 校验并规范化云端 API 地址与请求头 JSON。
+ *
+ * @throws 当地址协议、JSON 格式或请求头类型不合法时抛出错误。
+ */
 export function validateCloudSource(
   urlInput: string,
   headersText = '',
@@ -62,6 +74,11 @@ export function validateCloudSource(
     : { url: url.toString() }
 }
 
+/**
+ * 从本地存储读取云端数据源配置。
+ *
+ * @returns 未配置或配置无效时返回 null。
+ */
 export function loadCloudSource(): CloudSource | null {
   if (typeof window === 'undefined') return null
   try {
@@ -78,6 +95,11 @@ export function loadCloudSource(): CloudSource | null {
   }
 }
 
+/**
+ * 将云端数据源配置写入本地存储。
+ *
+ * @returns 是否写入成功。
+ */
 export function saveCloudSource(source: CloudSource): boolean {
   if (typeof window === 'undefined') return false
   try {
@@ -88,15 +110,22 @@ export function saveCloudSource(source: CloudSource): boolean {
   }
 }
 
+/** 清除本地保存的云端数据源配置；本地存储不可用时静默忽略。 */
 export function clearCloudSource(): void {
   if (typeof window === 'undefined') return
   try {
     window.localStorage.removeItem(CLOUD_SOURCE_KEY)
   } catch {
-    // 本地存储不可用时无需清理。
+    return
   }
 }
 
+/**
+ * 请求云端 ZIP 文件并解析为可导入的谱本。
+ *
+ * @param source 云端数据源地址与可选请求头。
+ * @param onProgress 下载与解析进度回调。
+ */
 export async function fetchCloudBooks(
   source: CloudSource,
   onProgress?: FileProgress,

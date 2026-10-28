@@ -11,7 +11,6 @@ import {
   FileZip,
   FloppyDisk,
   FolderSimple,
-  GearSix,
   Info,
   PencilSimple,
   Selection,
@@ -57,6 +56,7 @@ const yieldToUi = () => new Promise<void>((resolve) => {
   setTimeout(resolve, 0)
 })
 
+/** 首页与编辑页共用的数据、编辑和预览工具栏。 */
 export function WorkspaceToolbar({
   activeBook,
   books,
@@ -127,10 +127,6 @@ export function WorkspaceToolbar({
       setWorking(false)
       setProgress(null)
     }
-  }
-
-  const importFromCloud = () => {
-    void runCloudFetch(cloudSource)
   }
 
   const saveCloudSourceSetting = (source: CloudSource) => {
@@ -421,23 +417,14 @@ export function WorkspaceToolbar({
               <>
                 <div className="file-popover-separator" />
                 <Popover.Close asChild>
-                  <button onClick={importFromCloud} disabled={isWorking}>
-                    <CloudArrowDown size={19} />
-                    <span>
-                      <strong>云端获取</strong>
-                      <small>从云端 ZIP 导入全部谱本</small>
-                    </span>
-                  </button>
-                </Popover.Close>
-                <Popover.Close asChild>
                   <button
                     onClick={() => setCloudDialogOpen(true)}
                     disabled={isWorking}
                   >
-                    <GearSix size={19} />
+                    <CloudArrowDown size={19} />
                     <span>
-                      <strong>云端设置</strong>
-                      <small>修改 API 地址与请求头</small>
+                      <strong>云端获取</strong>
+                      <small>进入设置后手动导入</small>
                     </span>
                   </button>
                 </Popover.Close>

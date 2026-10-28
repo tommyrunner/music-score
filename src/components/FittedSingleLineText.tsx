@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 
+/** 自动缩小字号以适配单行宽度的文本。 */
 export function FittedSingleLineText({
   text,
   fontSize = 12,

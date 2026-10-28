@@ -1,3 +1,7 @@
+/**
+ * 谱本 JSON 文件的导入、导出、ZIP 打包与图片地址校验。
+ */
+
 import {
   createScoreBook,
   parseScoreBook,
@@ -8,13 +12,16 @@ import {
 const MAX_JSON_BYTES = 15 * 1024 * 1024
 const MAX_ARCHIVE_BYTES = 80 * 1024 * 1024
 
+/** 文件导入导出进度回调。 */
 export type FileProgress = (progress: number, detail: string) => void
 
+/** 单个文件导入失败的信息。 */
 export interface ImportError {
   fileName: string
   message: string
 }
 
+/** 批量导入结果。 */
 export interface ImportResult {
   books: ScoreBook[]
   errors: ImportError[]
@@ -62,6 +69,11 @@ function isJsonEntry(name: string): boolean {
     && !name.endsWith('/')
 }
 
+/**
+ * 校验并规范化图片地址，只允许 http(s) URL。
+ *
+ * @throws 地址为空或协议不是 http(s) 时抛出错误。
+ */
 export function normalizeImageUrl(input: string): string {
   const trimmed = input.trim()
   try {
@@ -75,14 +87,17 @@ export function normalizeImageUrl(input: string): string {
   }
 }
 
+/** 生成单本谱本导出时使用的文件名。 */
 export function scoreBookFileName(book: ScoreBook): string {
   return `${safeFileTitle(book.title) || '未命名谱本'}.stringroom.json`
 }
 
+/** 生成单页导出时使用的文件名。 */
 export function scorePageFileName(book: ScoreBook, page: ScoreBookPage): string {
   return `${safeFileTitle(book.title)}-${safeFileTitle(page.title)}.stringroom.json`
 }
 
+/** 将单个页面包装成只包含该页的谱本文档。 */
 export function scorePageAsBook(book: ScoreBook, page: ScoreBookPage): ScoreBook {
   const pageBook = createScoreBook(`${book.title} · ${page.title}`.slice(0, 80))
   return {
@@ -91,6 +106,7 @@ export function scorePageAsBook(book: ScoreBook, page: ScoreBookPage): ScoreBook
   }
 }
 
+/** 解压 ZIP 并逐个解析其中的谱本 JSON。 */
 async function importZipFile(
   file: File,
   startProgress: number,
@@ -138,6 +154,11 @@ async function importZipFile(
   }
 }
 
+/**
+ * 解析用户选择的 JSON 或 ZIP 文件。
+ *
+ * 单个文件失败不会中断其余文件，失败信息会收集到返回值中。
+ */
 export async function parseScoreBookFiles(
   files: File[],
   onProgress?: FileProgress,
@@ -177,6 +198,7 @@ export async function parseScoreBookFiles(
   return { books, errors }
 }
 
+/** 触发浏览器下载指定 Blob。 */
 function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
@@ -186,16 +208,22 @@ function downloadBlob(blob: Blob, fileName: string): void {
   URL.revokeObjectURL(url)
 }
 
+/** 将整本谱本下载为 JSON 文件。 */
 export function downloadScoreBook(book: ScoreBook): void {
   const json = JSON.stringify(book, null, 2)
   downloadBlob(new Blob([json], { type: 'application/json' }), scoreBookFileName(book))
 }
 
+/** 将当前页面下载为只包含该页的 JSON 文件。 */
 export function downloadScorePage(book: ScoreBook, page: ScoreBookPage): void {
   const json = JSON.stringify(scorePageAsBook(book, page), null, 2)
   downloadBlob(new Blob([json], { type: 'application/json' }), scorePageFileName(book, page))
 }
 
+/**
+ * 生成批量导出 ZIP 的文件名与 JSON 内容映射。
+ * 重名谱本会自动追加序号。
+ */
 export function scoreBookArchiveEntries(books: ScoreBook[]): Record<string, string> {
   const entries: Record<string, string> = {}
 
@@ -215,6 +243,7 @@ export function scoreBookArchiveEntries(books: ScoreBook[]): Record<string, stri
   return entries
 }
 
+/** 将全部谱本打包为 ZIP 并下载。 */
 export async function downloadScoreBooksArchive(
   books: ScoreBook[],
   onProgress?: FileProgress,

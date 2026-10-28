@@ -137,6 +137,7 @@ interface ScoreSymbolLayerProps {
   onSymbolClick?: (symbol: ScoreSymbol) => void
 }
 
+/** 在谱面上渲染各类乐谱符号。 */
 export function ScoreSymbolLayer({
   symbols,
   positions,

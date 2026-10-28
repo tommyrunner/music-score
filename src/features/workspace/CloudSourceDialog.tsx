@@ -13,6 +13,7 @@ interface CloudSourceDialogProps {
   onClear: () => void
 }
 
+/** 云端 ZIP 地址与请求头设置弹框。 */
 export function CloudSourceDialog({
   source,
   onClose,
@@ -40,8 +41,8 @@ export function CloudSourceDialog({
       onOpenChange={(open) => {
         if (!open) onClose()
       }}
-      title="云端设置"
-      description="修改云端 ZIP 接口和请求头，保存后立即导入一次。"
+      title="云端获取"
+      description="确认 API 地址和请求头，点击导入后拉取一次 ZIP。"
       footer={(
         <div className="cloud-dialog-footer">
           {source && (
@@ -58,7 +59,7 @@ export function CloudSourceDialog({
               type="submit"
               form="cloud-source-form"
             >
-              保存并导入
+              导入
             </button>
           </div>
         </div>
@@ -95,7 +96,7 @@ export function CloudSourceDialog({
         <p className="cloud-help">
           接口需要直接返回 ZIP 文件，并允许当前页面跨域访问（CORS）。
           如果填写了自定义请求头，接口还需要正确处理跨域预检请求。
-          只有点击「云端获取」或「保存并导入」时才会请求一次，进入首页不会自动导入。
+          只有点击「导入」时才会请求一次，进入首页不会自动导入。
         </p>
 
         {error && <p className="form-error" role="alert">{error}</p>}

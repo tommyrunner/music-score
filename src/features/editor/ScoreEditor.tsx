@@ -127,6 +127,7 @@ function MultiNoteSwatch() {
   )
 }
 
+/** 六线谱页面编辑器。 */
 export function ScoreEditor({ page }: { page: ScorePage }) {
   const updateFret = useScoreStore((state) => state.updateFret)
   const updateChord = useScoreStore((state) => state.updateChord)
