@@ -1,7 +1,6 @@
 # CI 部署说明
 
 > 本文是「弦间」的持续集成 / 自动部署说明。日常开发只需要 `git push`，服务器会自动构建并发布到 <http://music.kqhsxt.cn/>。
-> 更详细的首次搭建步骤、Gitee 流水线方案见 [docs/deploy.md](docs/deploy.md)。
 
 ## 1. 一句话流程
 
@@ -161,4 +160,3 @@ tar xzf /www/wwwroot/music-score/.backups/release-YYYYmmdd-HHMMSS-*.tgz \
 | [`deploy/server-hook.sh`](deploy/server-hook.sh) | CI 入口：拉代码 → 构建 → 发布 |
 | [`deploy/deploy.sh`](deploy/deploy.sh) | 发布脚本：备份 → 同步 → 权限 |
 | [`deploy/nginx-spa.conf`](deploy/nginx-spa.conf) | nginx 配置片段 |
-| [`docs/deploy.md`](docs/deploy.md) | 首次搭建 / Gitee 流水线方案 / 完整排查手册 |
