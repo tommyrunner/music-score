@@ -96,7 +96,7 @@ export function App() {
             </button>
           </section>
         ) : activePage.type === 'score' ? (
-          <ScoreEditor page={activePage} />
+          <ScoreEditor key={activePage.id} page={activePage} />
         ) : (
           <ImagePageView page={activePage} />
         )}

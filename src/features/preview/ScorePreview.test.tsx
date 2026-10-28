@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { createScoreBook, createScorePage, setFretAtPosition } from '../../domain/score/score-document'
-import { appendPage, setBarline, setLyricLine } from '../../domain/score/score-operations'
+import { appendPage, addSymbol, setBarline, setLyricLine } from '../../domain/score/score-operations'
 import { ScorePreview } from './ScorePreview'
 
 describe('paper preview', () => {
@@ -11,7 +11,20 @@ describe('paper preview', () => {
     const measure = emptyPage.measures[0]
     const withFret = setFretAtPosition(emptyPage, measure.id, measure.positions[0].id, 1, 3)
     const withBarline = setBarline(withFret, measure.id, measure.positions[3].id, 'single')
-    const page = setLyricLine(withBarline, measure.id, 0, '沿着晚风继续弹')
+    const withArpeggio = addSymbol(withBarline, measure.id, {
+      type: 'arpeggio',
+      points: [{ positionId: measure.positions[0].id, string: null }],
+      range: 'all',
+    })
+    const withSlur = addSymbol(withArpeggio, measure.id, {
+      type: 'hammer-on',
+      points: [
+        { positionId: measure.positions[0].id, string: 1 },
+        { positionId: measure.positions[4].id, string: 1 },
+      ],
+      range: null,
+    })
+    const page = setLyricLine(withSlur, measure.id, 0, '沿着晚风继续弹')
     const book = appendPage(createScoreBook('路边练习'), page)
     const close = vi.fn()
 
@@ -21,9 +34,11 @@ describe('paper preview', () => {
     expect(screen.getByLabelText('主歌六线谱纸张')).toHaveTextContent('3')
     expect(screen.getByLabelText('主歌六线谱纸张')).toHaveTextContent('沿着晚风继续弹')
     expect(document.querySelectorAll('.preview-functional-barline')).toHaveLength(1)
+    expect(document.querySelector('.preview-staff .score-symbol-layer')).toBeInTheDocument()
+    expect(screen.getByText('H')).toBeInTheDocument()
     expect(document.querySelector('.preview-measure-number')).not.toBeInTheDocument()
     expect(document.querySelector('.preview-chords')).toHaveStyle({
-      gridTemplateColumns: 'repeat(16, minmax(0, 1fr))',
+      gridTemplateColumns: 'repeat(24, minmax(0, 1fr))',
     })
     fireEvent.click(screen.getByRole('button', { name: '关闭预览' }))
     expect(close).toHaveBeenCalledWith(false)

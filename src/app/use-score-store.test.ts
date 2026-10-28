@@ -15,6 +15,12 @@ describe('score store persistence', () => {
       isDirty: false,
       dirtyBookIds: [],
       isHydrated: false,
+      history: {},
+      canUndo: false,
+      canRedo: false,
+      isSelectMode: false,
+      selectedNodes: [],
+      clipboard: [],
     })
   })
 
@@ -70,7 +76,7 @@ describe('score store persistence', () => {
     expect(hydratedPage.type).toBe('score')
     if (hydratedPage.type !== 'score') return
     expect(hydratedPage.measures[0].lyrics).toEqual([])
-    expect(hydratedPage.measures[0].positions).toHaveLength(16)
+    expect(hydratedPage.measures[0].positions).toHaveLength(24)
     expect(hydratedPage.measures[0].positions[0].barline).toBeNull()
   })
 
@@ -99,5 +105,68 @@ describe('score store persistence', () => {
     expect(useScoreStore.getState().isDirty).toBe(true)
     expect(useScoreStore.getState().dirtyBookIds).toEqual([firstId])
     expect(await scoreDb.books.get(secondId)).toBeDefined()
+  })
+
+  it('keeps the home library open after importing books in batches', async () => {
+    useScoreStore.setState({ activeBookId: null, activePageId: null })
+
+    await useScoreStore.getState().importBooks([createScoreBook('批量导入')])
+
+    expect(useScoreStore.getState().activeBookId).toBeNull()
+    expect(useScoreStore.getState().activePageId).toBeNull()
+    expect(useScoreStore.getState().books).toHaveLength(1)
+  })
+
+  it('undoes, redoes, copies non-adjacent notes and pastes them sequentially', () => {
+    const activePage = () => {
+      const state = useScoreStore.getState()
+      const book = state.books.find((candidate) => candidate.id === state.activeBookId)
+      const page = book?.pages.find((candidate) => candidate.id === state.activePageId)
+      if (!page || page.type !== 'score') throw new Error('missing score page')
+      return page
+    }
+
+    useScoreStore.getState().createBook('编辑测试')
+    useScoreStore.getState().addScorePage('主歌')
+
+    let page = activePage()
+    const measure = page.measures[0]
+    const start = measure.positions[0]
+    const second = measure.positions[2]
+    const pasteStart = measure.positions[5]
+
+    useScoreStore.getState().updateFret(measure.id, start.id, 1, 3)
+    useScoreStore.getState().updateFret(measure.id, second.id, 1, 5)
+    expect(useScoreStore.getState().canUndo).toBe(true)
+
+    useScoreStore.getState().undo()
+    page = activePage()
+    expect(page.measures[0].positions[2].notes).toEqual([])
+    expect(useScoreStore.getState().canRedo).toBe(true)
+
+    useScoreStore.getState().redo()
+    page = activePage()
+    expect(page.measures[0].positions[2].notes).toEqual([{ string: 1, fret: 5 }])
+
+    useScoreStore.getState().toggleSelectMode()
+    useScoreStore.getState().toggleNodeSelection(measure.id, start.id, 1)
+    useScoreStore.getState().toggleNodeSelection(measure.id, second.id, 1)
+    useScoreStore.getState().copySelection()
+
+    expect(useScoreStore.getState().clipboard).toEqual([
+      { string: 1, fret: 3 },
+      { string: 1, fret: 5 },
+    ])
+    expect(useScoreStore.getState().isSelectMode).toBe(false)
+
+    useScoreStore.getState().pasteAt(measure.id, pasteStart.id)
+    page = activePage()
+    expect(page.measures[0].positions[5].notes).toEqual([{ string: 1, fret: 3 }])
+    expect(page.measures[0].positions[6].notes).toEqual([{ string: 1, fret: 5 }])
+
+    useScoreStore.getState().undo()
+    page = activePage()
+    expect(page.measures[0].positions[5].notes).toEqual([])
+    expect(page.measures[0].positions[6].notes).toEqual([])
   })
 })

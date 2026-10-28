@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { createScoreBook, createScorePage } from './score-document'
 import {
   addMeasure,
+  addSymbol,
   appendPage,
+  removeSymbol,
   setBarline,
   setChord,
   setLyricLine,
@@ -22,13 +24,13 @@ describe('score editing operations', () => {
     expect(next.updatedAt).toBe('2026-09-10T10:00:00.000Z')
   })
 
-  it('adds a fresh sixteen-position measure to a score page', () => {
+  it('adds a fresh twenty-four-position measure to a score page', () => {
     const page = createScorePage('间奏')
 
     const next = addMeasure(page)
 
     expect(next.measures).toHaveLength(9)
-    expect(next.measures[8].positions).toHaveLength(16)
+    expect(next.measures[8].positions).toHaveLength(24)
     expect(next.measures[8].id).not.toBe(page.measures[0].id)
   })
 
@@ -68,6 +70,43 @@ describe('score editing operations', () => {
     expect(second.measures[0].lyrics).toEqual(['第一行歌词', '第二行歌词'])
     expect(edited.measures[0].lyrics).toEqual(['修改后的歌词', '第二行歌词'])
     expect(removed.measures[0].lyrics).toEqual(['第二行歌词'])
+  })
+
+  it('adds range and connection symbols and removes them', () => {
+    const page = createScorePage('技巧练习')
+    const measureId = page.measures[0].id
+    const startPositionId = page.measures[0].positions[0].id
+    const endPositionId = page.measures[0].positions[3].id
+
+    const withArpeggio = addSymbol(page, measureId, {
+      type: 'arpeggio',
+      points: [{ positionId: startPositionId, string: null }],
+      range: 'upper',
+    })
+    expect(withArpeggio.measures[0].symbols).toHaveLength(1)
+
+    const replaced = addSymbol(withArpeggio, measureId, {
+      type: 'arpeggio',
+      points: [{ positionId: startPositionId, string: null }],
+      range: 'all',
+    })
+    expect(replaced.measures[0].symbols).toHaveLength(1)
+    expect(replaced.measures[0].symbols[0].range).toBe('all')
+
+    const withConnection = addSymbol(replaced, measureId, {
+      type: 'hammer-on',
+      points: [
+        { positionId: startPositionId, string: 2 },
+        { positionId: endPositionId, string: 2 },
+      ],
+      range: null,
+    })
+    expect(withConnection.measures[0].symbols).toHaveLength(2)
+
+    const symbolId = withConnection.measures[0].symbols[0].id
+    const removed = removeSymbol(withConnection, measureId, symbolId)
+    expect(removed.measures[0].symbols).toHaveLength(1)
+    expect(removed.measures[0].symbols[0].type).toBe('hammer-on')
   })
 
   it('replaces only the selected score page in a book', () => {

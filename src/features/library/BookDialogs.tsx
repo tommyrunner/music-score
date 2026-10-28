@@ -1,9 +1,10 @@
-import { FileImage, MusicNotes, UploadSimple } from '@phosphor-icons/react'
+import { FileImage, MusicNotes } from '@phosphor-icons/react'
 import { useState, type FormEvent } from 'react'
 
 import { useScoreStore } from '../../app/use-score-store'
 import { DialogShell } from '../../components/DialogShell'
-import { createImagePageFromFile } from '../../data/score-files'
+import { normalizeImageUrl } from '../../data/score-files'
+import { createImagePage } from '../../domain/score/score-document'
 
 interface BookDialogProps {
   open: boolean
@@ -55,22 +56,20 @@ export function AddPageDialog({ open, onOpenChange }: BookDialogProps) {
   const addImagePage = useScoreStore((state) => state.addImagePage)
   const [title, setTitle] = useState('')
   const [pageType, setPageType] = useState<'score' | 'image'>('score')
-  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imageUrl, setImageUrl] = useState('')
   const [error, setError] = useState('')
-  const [isCreating, setCreating] = useState(false)
 
   const changeOpen = (nextOpen: boolean) => {
     if (!nextOpen) {
       setTitle('')
       setPageType('score')
-      setImageFile(null)
+      setImageUrl('')
       setError('')
-      setCreating(false)
     }
     onOpenChange(nextOpen)
   }
 
-  const submit = async (event: FormEvent) => {
+  const submit = (event: FormEvent) => {
     event.preventDefault()
     if (!title.trim()) return
 
@@ -80,19 +79,12 @@ export function AddPageDialog({ open, onOpenChange }: BookDialogProps) {
       return
     }
 
-    if (!imageFile) {
-      setError('请先选择一张图片')
-      return
-    }
-
-    setCreating(true)
-    setError('')
     try {
-      addImagePage(await createImagePageFromFile(title.trim(), imageFile))
+      const url = normalizeImageUrl(imageUrl)
+      addImagePage(createImagePage(title.trim(), { url }))
       changeOpen(false)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '图片页面创建失败')
-      setCreating(false)
     }
   }
 
@@ -130,7 +122,7 @@ export function AddPageDialog({ open, onOpenChange }: BookDialogProps) {
             }}
           >
             <FileImage size={21} />
-            <span><strong>图片页面</strong><small>PNG、JPEG 或 WebP</small></span>
+            <span><strong>图片页面</strong><small>填入图片 URL</small></span>
           </button>
         </fieldset>
 
@@ -144,18 +136,19 @@ export function AddPageDialog({ open, onOpenChange }: BookDialogProps) {
         />
 
         {pageType === 'image' && (
-          <div className="image-file-field">
-            <label htmlFor="page-image"><UploadSimple size={18} /> 选择图片</label>
+          <div className="image-url-field">
+            <label htmlFor="page-image-url">图片 URL</label>
             <input
-              id="page-image"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
+              id="page-image-url"
+              type="url"
+              value={imageUrl}
               onChange={(event) => {
-                setImageFile(event.target.files?.[0] ?? null)
+                setImageUrl(event.target.value)
                 setError('')
               }}
+              placeholder="https://example.com/score.png"
             />
-            <span>{imageFile?.name ?? '图片会完整保存在这份 JSON 中'}</span>
+            <small>JSON 中只保存图片链接，不保存 base64。</small>
           </div>
         )}
 
@@ -164,11 +157,9 @@ export function AddPageDialog({ open, onOpenChange }: BookDialogProps) {
         <button
           className="primary-button"
           type="submit"
-          disabled={!title.trim() || isCreating}
+          disabled={!title.trim()}
         >
-          {isCreating
-            ? '正在处理图片…'
-            : pageType === 'score' ? '新增六线谱页' : '新增图片页'}
+          {pageType === 'score' ? '新增六线谱页' : '新增图片页'}
         </button>
       </form>
     </DialogShell>

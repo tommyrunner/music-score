@@ -13,6 +13,7 @@ import {
 } from 'react'
 
 import { FittedSingleLineText } from '../../components/FittedSingleLineText'
+import { ScoreSymbolLayer } from '../../components/ScoreSymbolLayer'
 import type {
   ScoreBook,
   ImagePage,
@@ -132,6 +133,7 @@ function PreviewMeasure({ measure }: { measure: ScoreMeasure }) {
             </span>
           ))}
         </div>
+        <ScoreSymbolLayer symbols={measure.symbols} positions={measure.positions} />
       </div>
       {measure.lyrics.length > 0 && (
         <div className="preview-lyrics">
@@ -174,7 +176,7 @@ function ImagePaper({ page, pageNumber }: { page: ImagePage; pageNumber: number 
         <small>{String(pageNumber).padStart(2, '0')}</small>
       </header>
       <div className="preview-image-frame">
-        <img src={page.image.dataUrl} alt={page.title} />
+        <img src={page.image.url} alt={page.title} />
       </div>
       <footer>弦间 · Image reference</footer>
     </article>

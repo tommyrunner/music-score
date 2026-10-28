@@ -213,7 +213,8 @@
 .editor-header-leading,
 .editor-actions,
 .workspace-toolbar { display: flex; align-items: center; gap: 8px; }
-.editor-header-leading { min-width: 0; }
+.editor-header-leading { min-width: 0; flex: 0 1 auto; }
+.editor-actions { flex: none; }
 .editor-icon-button { min-width: 40px; padding-inline: 11px; background: transparent; }
 .back-home { width: 40px; padding: 0; }
 .editor-brand { width: 32px; height: 32px; margin-left: 2px; color: #fff9f5; background: var(--accent); }
@@ -222,6 +223,22 @@
 .editor-title small { color: var(--ink-soft); font-size: 9px; }
 .editor-action-button { background: transparent; }
 .save-button.has-changes { color: var(--accent-dark); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: #fff6f2; }
+.workspace-toolbar .text-button.is-active { color: var(--accent-dark); border-color: color-mix(in srgb, var(--accent) 48%, var(--line)); background: #fff6f2; }
+.edit-menu-button { gap: 5px; }
+.edit-menu-button .menu-caret { margin-left: -2px; color: var(--ink-faint); }
+.edit-popover { z-index: 45; width: min(266px, calc(100vw - 24px)); padding: 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-raised); box-shadow: 0 18px 50px rgba(25, 31, 27, .18); animation: fade-in 120ms ease; }
+.edit-popover-heading { display: grid; gap: 1px; margin-bottom: 4px; padding: 8px 9px 9px; border-bottom: 1px solid var(--line); }
+.edit-popover-heading strong { font-family: "Iowan Old Style", "Songti SC", serif; font-size: 15px; }
+.edit-popover-heading span { color: var(--ink-soft); font-size: 9px; }
+.edit-popover > button { width: 100%; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 8px; color: var(--ink); text-align: left; border: 0; border-radius: 7px; background: transparent; cursor: pointer; }
+.edit-popover > button:hover:not(:disabled) { background: var(--surface-deep); }
+.edit-popover > button:disabled { opacity: .42; cursor: not-allowed; }
+.edit-popover > button > span { display: grid; gap: 1px; }
+.edit-popover > button strong { font-size: 11px; }
+.edit-popover > button small { color: var(--ink-faint); font-size: 9px; }
+.edit-popover kbd { color: var(--ink-faint); font: 9px ui-monospace, monospace; white-space: nowrap; }
+.edit-popover-separator { height: 1px; margin: 4px 8px; background: var(--line); }
+.edit-popover-arrow { fill: var(--surface-raised); }
 .toolbar-notice { position: fixed; right: 22px; top: 78px; z-index: 18; max-width: 280px; padding: 9px 12px; color: #f7f8f4; border-radius: var(--radius-control); background: var(--ink); font-size: 11px; box-shadow: 0 10px 30px rgba(23, 28, 25, .18); }
 .editor-canvas { min-height: calc(100dvh - 68px); padding: 38px 24px 80px; }
 
@@ -270,15 +287,21 @@
 .app-loading small { color: #9da6a1; }
 @keyframes loading-pulse { 50% { transform: rotate(-5deg) scale(.96); opacity: .78; } }
 
-@media (max-width: 900px) {
-  .home-hero { grid-template-columns: 1fr .8fr; gap: 42px; }
-  .book-shelf { grid-template-columns: 1.2fr 1fr; }
-  .shelf-book:nth-child(n + 3) { margin-top: 16px; }
+@media (max-width: 1080px) {
   .editor-actions { gap: 5px; }
   .editor-actions .text-button,
   .editor-actions .editor-icon-button { width: 40px; padding: 0; }
   .editor-actions .text-button span,
   .editor-actions .editor-icon-button span { display: none; }
+  .editor-actions .add-sheet-button { width: 40px; min-height: 40px; padding: 0; }
+  .editor-actions .add-sheet-button span { display: none; }
+  .editor-title strong { max-width: 22vw; }
+}
+
+@media (max-width: 900px) {
+  .home-hero { grid-template-columns: 1fr .8fr; gap: 42px; }
+  .book-shelf { grid-template-columns: 1.2fr 1fr; }
+  .shelf-book:nth-child(n + 3) { margin-top: 16px; }
 }
 
 @media (max-width: 700px) {

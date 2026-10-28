@@ -8,6 +8,7 @@ interface DialogShellProps {
   title: string
   description: string
   children: ReactNode
+  footer?: ReactNode
 }
 
 export function DialogShell({
@@ -16,6 +17,7 @@ export function DialogShell({
   title,
   description,
   children,
+  footer,
 }: DialogShellProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -33,7 +35,8 @@ export function DialogShell({
               </button>
             </Dialog.Close>
           </div>
-          {children}
+          <div className="dialog-body">{children}</div>
+          {footer && <div className="dialog-footer">{footer}</div>}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

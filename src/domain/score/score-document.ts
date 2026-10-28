@@ -1,12 +1,14 @@
 import { z } from 'zod'
 
 const MAX_TITLE_LENGTH = 80
-const DEFAULT_POSITION_COUNT = 16
+const DEFAULT_POSITION_COUNT = 24
 const DEFAULT_MEASURE_COUNT = 8
+
+export const MAX_FRET = 6
 
 const idSchema = z.string().min(1).max(100)
 const titleSchema = z.string().trim().min(1).max(MAX_TITLE_LENGTH)
-const fretSchema = z.union([z.number().int().min(0).max(24), z.literal('X')])
+const fretSchema = z.union([z.number().int().min(0).max(MAX_FRET), z.literal('X')])
 const barlineSchema = z.enum(['single'])
 
 const noteSchema = z
@@ -15,6 +17,48 @@ const noteSchema = z
     fret: fretSchema,
   })
   .strict()
+
+const stringRangeSchema = z.enum(['upper', 'lower', 'all'])
+const scoreSymbolTypeSchema = z.enum([
+  'arpeggio',
+  'sweep',
+  'tie',
+  'hammer-on',
+  'pull-off',
+])
+
+const symbolPointSchema = z
+  .object({
+    positionId: idSchema,
+    string: z.number().int().min(1).max(6).nullable().default(null),
+  })
+  .strict()
+
+const scoreSymbolSchema = z
+  .object({
+    id: idSchema,
+    type: scoreSymbolTypeSchema,
+    points: z.array(symbolPointSchema).min(1).max(4),
+    range: stringRangeSchema.nullable().default(null),
+  })
+  .strict()
+  .superRefine((symbol, context) => {
+    const isRangeSymbol = symbol.type === 'arpeggio' || symbol.type === 'sweep'
+
+    if (isRangeSymbol && (symbol.points.length !== 1 || symbol.range === null)) {
+      context.addIssue({
+        code: 'custom',
+        message: '琶音和扫弦需要选择一个琴弦范围',
+      })
+    }
+
+    if (!isRangeSymbol && (symbol.points.length !== 2 || symbol.range !== null)) {
+      context.addIssue({
+        code: 'custom',
+        message: '连线符号需要选择两个音符位置',
+      })
+    }
+  })
 
 const positionSchema = z
   .object({
@@ -49,6 +93,7 @@ const measureSchema = z
           ],
     ),
     lyrics: z.array(z.string().trim().min(1).max(300)).max(12).default([]),
+    symbols: z.array(scoreSymbolSchema).max(200).default([]),
   })
   .strict()
 
@@ -61,6 +106,23 @@ const scorePageSchema = z
   })
   .strict()
 
+const imageUrlSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(2000)
+  .refine(
+    (value) => {
+      try {
+        const url = new URL(value)
+        return url.protocol === 'http:' || url.protocol === 'https:'
+      } catch {
+        return false
+      }
+    },
+    { message: '图片地址必须是 http(s) URL' },
+  )
+
 const imagePageSchema = z
   .object({
     id: idSchema,
@@ -68,9 +130,7 @@ const imagePageSchema = z
     title: titleSchema,
     image: z
       .object({
-        name: z.string().trim().min(1).max(180),
-        mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
-        dataUrl: z.string().startsWith('data:image/').max(10_000_000),
+        url: imageUrlSchema,
       })
       .strict(),
   })
@@ -103,6 +163,10 @@ export const scoreBookSchema = z
 
 export type FretValue = z.infer<typeof fretSchema>
 export type BarlineStyle = z.infer<typeof barlineSchema>
+export type StringRange = z.infer<typeof stringRangeSchema>
+export type ScoreSymbolType = z.infer<typeof scoreSymbolTypeSchema>
+export type ScoreSymbolPoint = z.infer<typeof symbolPointSchema>
+export type ScoreSymbol = z.infer<typeof scoreSymbolSchema>
 export type ScorePosition = z.infer<typeof positionSchema>
 export type ScoreMeasure = z.infer<typeof measureSchema>
 export type ScorePage = z.infer<typeof scorePageSchema>
@@ -161,6 +225,7 @@ export function createMeasure(): ScoreMeasure {
     id: crypto.randomUUID(),
     positions: Array.from({ length: DEFAULT_POSITION_COUNT }, createPosition),
     lyrics: [],
+    symbols: [],
   })
 }
 

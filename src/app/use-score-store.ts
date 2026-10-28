@@ -10,16 +10,35 @@ import {
   type ImagePage,
   type ScoreBook,
   type ScorePage,
+  type ScoreSymbol,
 } from '../domain/score/score-document'
 import { scoreDb } from '../data/score-db'
 import {
   addMeasure,
+  addSymbol as addSymbolToPage,
   appendPage,
+  pasteNotesFrom,
+  removeSymbol as removeSymbolFromPage,
   setBarline,
   setChord,
   setLyricLine,
+  setPositionNotes as setPositionNotesOnPage,
   updateScorePage,
+  type ScoreClipboardNote,
 } from '../domain/score/score-operations'
+
+export interface SelectedNode {
+  measureId: string
+  positionId: string
+  stringNumber: number
+}
+
+interface PageHistory {
+  past: ScorePage[]
+  future: ScorePage[]
+}
+
+const HISTORY_LIMIT = 60
 
 interface ScoreStore {
   books: ScoreBook[]
@@ -28,6 +47,12 @@ interface ScoreStore {
   isDirty: boolean
   dirtyBookIds: string[]
   isHydrated: boolean
+  history: Record<string, PageHistory>
+  canUndo: boolean
+  canRedo: boolean
+  isSelectMode: boolean
+  selectedNodes: SelectedNode[]
+  clipboard: ScoreClipboardNote[]
   hydrate: () => Promise<void>
   saveActiveBook: () => Promise<void>
   importBooks: (books: ScoreBook[]) => Promise<void>
@@ -38,11 +63,27 @@ interface ScoreStore {
   addScorePage: (title: string) => void
   addImagePage: (page: ImagePage) => void
   addMeasure: () => void
+  undo: () => void
+  redo: () => void
+  toggleSelectMode: () => void
+  toggleNodeSelection: (
+    measureId: string,
+    positionId: string,
+    stringNumber: number,
+  ) => void
+  setSelectedNodes: (nodes: SelectedNode[]) => void
+  copySelection: () => void
+  pasteAt: (measureId: string, positionId: string) => void
   updateFret: (
     measureId: string,
     positionId: string,
     stringNumber: number,
     fret: FretValue | null,
+  ) => void
+  updatePositionNotes: (
+    measureId: string,
+    positionId: string,
+    notes: ScoreClipboardNote[],
   ) => void
   updateChord: (measureId: string, positionId: string, chord: string) => void
   updateBarline: (
@@ -55,25 +96,57 @@ interface ScoreStore {
     lyricIndex: number,
     text: string | null,
   ) => void
+  addSymbol: (measureId: string, symbol: Omit<ScoreSymbol, 'id'>) => void
+  removeSymbol: (measureId: string, symbolId: string) => void
+}
+
+function findActivePage(state: ScoreStore) {
+  const book = state.books.find((candidate) => candidate.id === state.activeBookId)
+  const page = book?.pages.find((candidate) => candidate.id === state.activePageId)
+  return book && page && page.type === 'score' ? { book, page } : null
+}
+
+function markBookDirty(state: ScoreStore, bookId: string): Partial<ScoreStore> {
+  return {
+    isDirty: true,
+    dirtyBookIds: state.dirtyBookIds.includes(bookId)
+      ? state.dirtyBookIds
+      : [...state.dirtyBookIds, bookId],
+  }
+}
+
+function historyFlags(state: ScoreStore, pageId: string | null) {
+  const history = pageId ? state.history[pageId] : null
+  return {
+    canUndo: Boolean(history?.past.length),
+    canRedo: Boolean(history?.future.length),
+  }
 }
 
 function updateActivePage(
   state: ScoreStore,
   transform: (page: ScorePage) => ScorePage,
 ): Partial<ScoreStore> {
-  const book = state.books.find((candidate) => candidate.id === state.activeBookId)
-  const page = book?.pages.find((candidate) => candidate.id === state.activePageId)
-  if (!book || !page || page.type !== 'score') return {}
+  const active = findActivePage(state)
+  if (!active) return {}
 
-  const updatedBook = updateScorePage(book, transform(page))
+  const { book, page } = active
+  const nextPage = transform(page)
+  const updatedBook = updateScorePage(book, nextPage)
+  const history = state.history[page.id] ?? { past: [], future: [] }
+  const past = [...history.past, page].slice(-HISTORY_LIMIT)
+
   return {
     books: state.books.map((candidate) =>
       candidate.id === updatedBook.id ? updatedBook : candidate,
     ),
-    isDirty: true,
-    dirtyBookIds: state.dirtyBookIds.includes(book.id)
-      ? state.dirtyBookIds
-      : [...state.dirtyBookIds, book.id],
+    ...markBookDirty(state, book.id),
+    history: {
+      ...state.history,
+      [page.id]: { past, future: [] },
+    },
+    canUndo: past.length > 0,
+    canRedo: false,
   }
 }
 
@@ -84,6 +157,12 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
   isDirty: false,
   dirtyBookIds: [],
   isHydrated: false,
+  history: {},
+  canUndo: false,
+  canRedo: false,
+  isSelectMode: false,
+  selectedNodes: [],
+  clipboard: [],
 
   hydrate: async () => {
     try {
@@ -96,6 +175,12 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
         isDirty: false,
         dirtyBookIds: [],
         isHydrated: true,
+        history: {},
+        canUndo: false,
+        canRedo: false,
+        isSelectMode: false,
+        selectedNodes: [],
+        clipboard: [],
       })
     } catch {
       set({ isHydrated: true })
@@ -130,13 +215,20 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
         ...uniqueBooks,
       ]
       const activeBook = uniqueBooks[0]
+      const stayHome = state.activeBookId === null
       const dirtyBookIds = state.dirtyBookIds.filter((bookId) => !importedIds.has(bookId))
       return {
         books,
-        activeBookId: activeBook.id,
-        activePageId: activeBook.pages[0]?.id ?? null,
+        activeBookId: stayHome ? null : activeBook.id,
+        activePageId: stayHome ? null : activeBook.pages[0]?.id ?? null,
         isDirty: false,
         dirtyBookIds,
+        history: {},
+        canUndo: false,
+        canRedo: false,
+        isSelectMode: false,
+        selectedNodes: [],
+        clipboard: [],
       }
     })
   },
@@ -151,22 +243,44 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
       dirtyBookIds: state.dirtyBookIds.includes(book.id)
         ? state.dirtyBookIds
         : [...state.dirtyBookIds, book.id],
+      canUndo: false,
+      canRedo: false,
+      isSelectMode: false,
+      selectedNodes: [],
     }))
   },
 
-  goHome: () => set({ activeBookId: null, activePageId: null, isDirty: false }),
+  goHome: () => set({
+    activeBookId: null,
+    activePageId: null,
+    isDirty: false,
+    canUndo: false,
+    canRedo: false,
+    isSelectMode: false,
+    selectedNodes: [],
+  }),
 
   selectBook: (bookId) =>
     set((state) => {
       const book = state.books.find((candidate) => candidate.id === bookId)
+      const pageId = book?.pages[0]?.id ?? null
       return {
         activeBookId: bookId,
-        activePageId: book?.pages[0]?.id ?? null,
+        activePageId: pageId,
         isDirty: state.dirtyBookIds.includes(bookId),
+        ...historyFlags(state, pageId),
+        isSelectMode: false,
+        selectedNodes: [],
       }
     }),
 
-  selectPage: (pageId) => set({ activePageId: pageId }),
+  selectPage: (pageId) =>
+    set((state) => ({
+      activePageId: pageId,
+      ...historyFlags(state, pageId),
+      isSelectMode: false,
+      selectedNodes: [],
+    })),
 
   addScorePage: (title) =>
     set((state) => {
@@ -179,10 +293,11 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
           candidate.id === updatedBook.id ? updatedBook : candidate,
         ),
         activePageId: page.id,
-        isDirty: true,
-        dirtyBookIds: state.dirtyBookIds.includes(book.id)
-          ? state.dirtyBookIds
-          : [...state.dirtyBookIds, book.id],
+        ...markBookDirty(state, book.id),
+        canUndo: false,
+        canRedo: false,
+        isSelectMode: false,
+        selectedNodes: [],
       }
     }),
 
@@ -196,14 +311,159 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
           candidate.id === updatedBook.id ? updatedBook : candidate,
         ),
         activePageId: page.id,
-        isDirty: true,
-        dirtyBookIds: state.dirtyBookIds.includes(book.id)
-          ? state.dirtyBookIds
-          : [...state.dirtyBookIds, book.id],
+        ...markBookDirty(state, book.id),
+        canUndo: false,
+        canRedo: false,
+        isSelectMode: false,
+        selectedNodes: [],
       }
     }),
 
   addMeasure: () => set((state) => updateActivePage(state, addMeasure)),
+
+  undo: () =>
+    set((state) => {
+      const active = findActivePage(state)
+      if (!active) return {}
+
+      const { book, page } = active
+      const history = state.history[page.id]
+      if (!history || history.past.length === 0) return {}
+
+      const previous = history.past[history.past.length - 1]
+      const past = history.past.slice(0, -1)
+      const future = [page, ...history.future]
+      const updatedBook = updateScorePage(book, previous)
+
+      return {
+        books: state.books.map((candidate) =>
+          candidate.id === updatedBook.id ? updatedBook : candidate,
+        ),
+        ...markBookDirty(state, book.id),
+        history: {
+          ...state.history,
+          [page.id]: { past, future },
+        },
+        canUndo: past.length > 0,
+        canRedo: future.length > 0,
+        isSelectMode: false,
+        selectedNodes: [],
+      }
+    }),
+
+  redo: () =>
+    set((state) => {
+      const active = findActivePage(state)
+      if (!active) return {}
+
+      const { book, page } = active
+      const history = state.history[page.id]
+      if (!history || history.future.length === 0) return {}
+
+      const next = history.future[0]
+      const past = [...history.past, page].slice(-HISTORY_LIMIT)
+      const future = history.future.slice(1)
+      const updatedBook = updateScorePage(book, next)
+
+      return {
+        books: state.books.map((candidate) =>
+          candidate.id === updatedBook.id ? updatedBook : candidate,
+        ),
+        ...markBookDirty(state, book.id),
+        history: {
+          ...state.history,
+          [page.id]: { past, future },
+        },
+        canUndo: past.length > 0,
+        canRedo: future.length > 0,
+        isSelectMode: false,
+        selectedNodes: [],
+      }
+    }),
+
+  toggleSelectMode: () =>
+    set((state) => state.isSelectMode
+      ? { isSelectMode: false, selectedNodes: [] }
+      : { isSelectMode: true, selectedNodes: [] }),
+
+  toggleNodeSelection: (measureId, positionId, stringNumber) =>
+    set((state) => {
+      if (!state.isSelectMode) return {}
+
+      const selected = state.selectedNodes.find(
+        (node) =>
+          node.measureId === measureId
+          && node.positionId === positionId
+          && node.stringNumber === stringNumber,
+      )
+      const selectedNodes = selected
+        ? state.selectedNodes.filter((node) => node !== selected)
+        : [...state.selectedNodes, { measureId, positionId, stringNumber }]
+
+      return { selectedNodes }
+    }),
+
+  setSelectedNodes: (nodes) =>
+    set((state) => state.isSelectMode ? { selectedNodes: nodes } : {}),
+
+  copySelection: () =>
+    set((state) => {
+      const active = findActivePage(state)
+      if (!active || state.selectedNodes.length === 0) return {}
+
+      const measureIndexes = new Map(
+        active.page.measures.map((measure, index) => [measure.id, index]),
+      )
+      const notes = state.selectedNodes.flatMap((node) => {
+        const measureIndex = measureIndexes.get(node.measureId)
+        if (measureIndex === undefined) return []
+
+        const measure = active.page.measures[measureIndex]
+        const positionIndex = measure.positions.findIndex(
+          (position) => position.id === node.positionId,
+        )
+        if (positionIndex < 0) return []
+
+        const position = measure.positions[positionIndex]
+        const note = position.notes.find(
+          (candidate) => candidate.string === node.stringNumber,
+        )
+        if (!note) return []
+
+        return [{ note: { string: note.string, fret: note.fret }, measureIndex, positionIndex }]
+      })
+
+      if (notes.length === 0) return {}
+
+      notes.sort(
+        (left, right) =>
+          left.measureIndex - right.measureIndex
+          || left.positionIndex - right.positionIndex
+          || left.note.string - right.note.string,
+      )
+
+      return {
+        clipboard: notes.map(({ note }) => note),
+        isSelectMode: false,
+        selectedNodes: [],
+      }
+    }),
+
+  pasteAt: (measureId, positionId) =>
+    set((state) => {
+      if (state.clipboard.length === 0) return {}
+
+      return updateActivePage(state, (page) =>
+        pasteNotesFrom(page, measureId, positionId, state.clipboard),
+      )
+    }),
+
+  updatePositionNotes: (measureId, positionId, notes) =>
+    set((state) =>
+      updateActivePage(state, (page) =>
+        setPositionNotesOnPage(page, measureId, positionId, notes),
+      ),
+    ),
 
   updateFret: (measureId, positionId, stringNumber, fret) =>
     set((state) =>
@@ -228,6 +488,20 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
     set((state) =>
       updateActivePage(state, (page) =>
         setLyricLine(page, measureId, lyricIndex, text),
+      ),
+    ),
+
+  addSymbol: (measureId, symbol) =>
+    set((state) =>
+      updateActivePage(state, (page) =>
+        addSymbolToPage(page, measureId, symbol),
+      ),
+    ),
+
+  removeSymbol: (measureId, symbolId) =>
+    set((state) =>
+      updateActivePage(state, (page) =>
+        removeSymbolFromPage(page, measureId, symbolId),
       ),
     ),
 }))

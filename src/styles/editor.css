@@ -19,11 +19,16 @@
 .score-intro span { display: block; margin-top: 9px; color: var(--ink-soft); font-size: 10px; }
 
 .score-systems {
+  position: relative;
   display: grid;
   align-content: start;
   gap: 24px;
   margin-top: 20px;
 }
+.score-systems.is-select-mode { user-select: none; touch-action: none; }
+.score-systems.is-select-mode,
+.score-systems.is-select-mode .note-grid button { cursor: crosshair; }
+.selection-marquee { position: absolute; z-index: 6; pointer-events: none; border: 1px solid var(--accent); border-radius: 3px; background: color-mix(in srgb, var(--accent) 12%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent); }
 
 .score-system { min-width: 0; }
 .chord-row { display: grid; min-height: 27px; padding-inline: 1%; }
@@ -38,16 +43,47 @@
 .staff-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .staff-lines line { stroke: #505752; stroke-width: 1.2; vector-effect: non-scaling-stroke; }
 .staff-lines .edge-line { stroke-width: 1.8; }
-.function-mark-grid { position: absolute; inset: 0; display: grid; pointer-events: none; }
+.function-mark-grid { position: absolute; inset: 0; z-index: 2; display: grid; pointer-events: none; }
 .function-mark-grid > span { position: relative; min-width: 0; }
-.single-barline { position: absolute; left: 50%; top: calc(100% / 12); bottom: calc(100% / 12); width: 2px; background: #303632; transform: translateX(-50%); }
-.note-grid { position: absolute; inset: 0; display: grid; grid-template-rows: repeat(6, 1fr); }
+.single-barline-button { position: absolute; left: 50%; top: calc(100% / 12); bottom: calc(100% / 12); width: 18px; padding: 0; border: 0; background: transparent; cursor: pointer; pointer-events: auto; transform: translateX(-50%); }
+.single-barline-button .single-barline { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: #303632; transform: translateX(-50%); transition: width 100ms ease, background-color 100ms ease; }
+.single-barline-button:hover .single-barline,
+.single-barline-button:focus-visible .single-barline { width: 3px; background: var(--accent); }
+.note-grid { position: absolute; inset: 0; z-index: 1; display: grid; grid-template-rows: repeat(6, 1fr); }
 .note-grid button { position: relative; min-width: 0; margin: 0 8%; padding: 0; color: var(--ink); font: 700 12px ui-monospace, monospace; border: 0; background: transparent; cursor: pointer; }
 .note-grid button::after { content: ''; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); opacity: 0; transform: translate(-50%, -50%) scale(.6); transition: opacity 120ms ease, transform 120ms ease; }
 .note-grid button:hover::after,
 .note-grid button:focus-visible::after { opacity: .72; transform: translate(-50%, -50%) scale(1); }
 .note-value { min-width: 15px; height: 17px; display: inline-grid; place-items: center; padding: 0 2px; border-radius: 2px; background: var(--paper); }
 .note-grid button.has-note::after { display: none; }
+.note-grid button.is-symbol-start { background: color-mix(in srgb, var(--accent) 10%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 62%, transparent); border-radius: 3px; }
+.note-grid button.is-selected-node { background: color-mix(in srgb, var(--accent) 12%, transparent); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 72%, transparent); border-radius: 3px; }
+
+.select-mode-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 16px; padding: 10px 12px; color: var(--ink); border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--line)); border-left: 3px solid var(--accent); border-radius: 8px; background: color-mix(in srgb, var(--accent) 7%, var(--paper)); font-size: 11px; }
+.select-mode-banner > div:first-child { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px 10px; }
+.select-mode-banner strong { color: var(--accent-dark); font: 700 11px ui-monospace, monospace; letter-spacing: .04em; }
+.select-mode-banner span { color: var(--ink-soft); }
+.select-mode-actions { flex: none; display: flex; gap: 6px; }
+.select-mode-actions button { min-height: 30px; padding: 0 10px; color: var(--ink); border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line)); border-radius: 6px; background: #fff; cursor: pointer; font-size: 10px; }
+.select-mode-actions button:first-child { color: var(--accent-dark); font-weight: 650; }
+.select-mode-actions button:hover:not(:disabled) { border-color: var(--accent); }
+
+.score-symbol-layer { position: absolute; inset: 0; z-index: 4; overflow: visible; pointer-events: none; }
+.score-symbol-layer > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.score-symbol-stroke { fill: none; stroke: #303632; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; pointer-events: stroke; }
+.score-symbol-hit { fill: none; stroke: transparent; stroke-width: 20; stroke-linecap: round; stroke-linejoin: round; pointer-events: stroke; cursor: pointer; }
+.score-symbol-group:hover .score-symbol-stroke,
+.score-symbol-group:focus-visible .score-symbol-stroke { stroke: var(--accent); }
+.score-symbol-group:focus-visible { outline: none; }
+.score-symbol-label { position: absolute; top: -8px; padding: 0 2px; color: #303632; background: var(--paper); font: italic 700 11px/1 "Iowan Old Style", "Songti SC", serif; transform: translateX(-50%); pointer-events: none; }
+
+.symbol-pending-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 16px; padding: 10px 12px; color: var(--ink); border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--line)); border-left: 3px solid var(--accent); border-radius: 8px; background: color-mix(in srgb, var(--accent) 7%, var(--paper)); font-size: 11px; }
+.symbol-pending-banner > div { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px 10px; }
+.symbol-pending-banner strong { color: var(--accent-dark); font: 700 11px ui-monospace, monospace; letter-spacing: .04em; }
+.symbol-pending-banner span { color: var(--ink-soft); }
+.symbol-pending-banner em { color: var(--accent-dark); font-style: normal; font-weight: 650; }
+.symbol-pending-banner button { flex: none; min-height: 30px; padding: 0 10px; color: var(--accent-dark); border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--line)); border-radius: 6px; background: #fff; cursor: pointer; font-size: 10px; }
+.symbol-pending-banner.is-notice { border-left-color: var(--accent-dark); }
 
 .lyrics-area { position: relative; display: grid; min-width: 0; margin-top: 5px; }
 .lyric-line,

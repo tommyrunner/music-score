@@ -26,8 +26,9 @@ describe('score document contract', () => {
 
     expect(page.type).toBe('score')
     expect(page.measures).toHaveLength(8)
-    expect(page.measures.every((measure) => measure.positions.length === 16)).toBe(true)
+    expect(page.measures.every((measure) => measure.positions.length === 24)).toBe(true)
     expect(page.measures.every((measure) => measure.lyrics.length === 0)).toBe(true)
+    expect(page.measures.every((measure) => measure.symbols.length === 0)).toBe(true)
     expect(
       page.measures.every((measure) =>
         measure.positions.every((position) => position.barline === null),
@@ -80,6 +81,20 @@ describe('score document contract', () => {
     )
   })
 
+  it('limits frets to the supported 0 to 6 range', () => {
+    const book = { ...createScoreBook('音域练习'), pages: [createScorePage('音域')] }
+    const candidate = JSON.parse(JSON.stringify(book))
+    const position = candidate.pages[0].measures[0].positions[0]
+
+    position.notes = [{ string: 1, fret: 6 }]
+    expect(parseScoreBook(JSON.stringify(candidate))).toBeTruthy()
+
+    position.notes = [{ string: 1, fret: 7 }]
+    expect(() => parseScoreBook(JSON.stringify(candidate))).toThrow(
+      '无法识别这份乐谱文件',
+    )
+  })
+
   it('fills new score-line fields when importing an older document', () => {
     const page = createScorePage('旧版主歌')
     const book = { ...createScoreBook('旧版谱本'), pages: [page] }
@@ -88,6 +103,7 @@ describe('score document contract', () => {
     for (const measure of legacyBook.pages[0].measures) {
       measure.positions = measure.positions.slice(0, 8)
       delete measure.lyrics
+      delete measure.symbols
       for (const position of measure.positions) delete position.barline
     }
 
@@ -97,7 +113,8 @@ describe('score document contract', () => {
     expect(parsedPage.type).toBe('score')
     if (parsedPage.type !== 'score') return
     expect(parsedPage.measures[0].lyrics).toEqual([])
-    expect(parsedPage.measures[0].positions).toHaveLength(16)
+    expect(parsedPage.measures[0].symbols).toEqual([])
+    expect(parsedPage.measures[0].positions).toHaveLength(24)
     expect(parsedPage.measures[0].positions[0].barline).toBeNull()
   })
 })
