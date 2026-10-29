@@ -1,8 +1,8 @@
-import { ArrowUpRight, Guitar, Plus, Trash } from '@phosphor-icons/react'
 import { useState } from 'react'
 
 import { useScoreStore } from '../../app/use-score-store'
 import { DialogShell } from '../../components/DialogShell'
+import { ArrowUpRight, Guitar, Plus, Trash } from '../../components/icons'
 import type { ScoreBook } from '../../domain/score/score-document'
 import { WorkspaceToolbar } from '../workspace/WorkspaceToolbar'
 

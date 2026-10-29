@@ -3,11 +3,23 @@ import { useState, type FormEvent } from 'react'
 import { useScoreStore } from '../../app/use-score-store'
 import { DialogShell } from '../../components/DialogShell'
 import {
+  DEFAULT_CHORD_DISPLAY,
   PAGE_FOOTER_LEFT_MAX_LENGTH,
   PAGE_FOOTER_RIGHT_MAX_LENGTH,
   SCORE_SUBTITLE_MAX_LENGTH,
+  type ChordDisplayMode,
   type ScoreBookPage,
 } from '../../domain/score/score-document'
+
+const CHORD_DISPLAY_OPTIONS: Array<{
+  value: ChordDisplayMode
+  label: string
+  description: string
+}> = [
+  { value: 'both', label: '字母 + 样图', description: '和弦名与指法图' },
+  { value: 'diagram', label: '单独样图', description: '只显示指法图' },
+  { value: 'letter', label: '单独字母', description: '只显示和弦名' },
+]
 
 interface PageInfoDialogProps {
   page: ScoreBookPage
@@ -15,7 +27,7 @@ interface PageInfoDialogProps {
 }
 
 /**
- * 编辑当前页面标题、副标题和页脚的弹框。
+ * 编辑当前页面标题、副标题、页脚与和弦显示方式的弹框。
  *
  * @param props 当前页面与关闭回调。
  */
@@ -25,6 +37,9 @@ export function PageInfoDialog({ page, onClose }: PageInfoDialogProps) {
   const [subtitle, setSubtitle] = useState(page.type === 'score' ? page.subtitle : '')
   const [footerLeft, setFooterLeft] = useState(page.type === 'score' ? page.footerLeft : '')
   const [footerRight, setFooterRight] = useState(page.type === 'score' ? page.footerRight : '')
+  const [chordDisplay, setChordDisplay] = useState<ChordDisplayMode>(
+    page.type === 'score' ? page.chordDisplay : DEFAULT_CHORD_DISPLAY,
+  )
 
   const trimmedTitle = title.trim()
   const unchanged = page.type === 'score'
@@ -32,6 +47,7 @@ export function PageInfoDialog({ page, onClose }: PageInfoDialogProps) {
       && subtitle.trim() === page.subtitle
       && footerLeft.trim() === page.footerLeft
       && footerRight.trim() === page.footerRight
+      && chordDisplay === page.chordDisplay
     : trimmedTitle === page.title
 
   const submit = (event: FormEvent) => {
@@ -44,6 +60,7 @@ export function PageInfoDialog({ page, onClose }: PageInfoDialogProps) {
         subtitle,
         footerLeft,
         footerRight,
+        chordDisplay,
       })
     } else {
       updatePageInfo(page.id, { title: trimmedTitle })
@@ -59,10 +76,20 @@ export function PageInfoDialog({ page, onClose }: PageInfoDialogProps) {
       }}
       title="编辑页面信息"
       description={page.type === 'score'
-        ? '修改页面标题、副标题和页脚；目录与导出文件会同步使用新名称。'
+        ? '修改页面标题、副标题、页脚与和弦显示方式；目录与导出文件会同步使用新名称。'
         : '修改页面标题；目录与导出文件会同步使用新名称。'}
+      footer={(
+        <button
+          className="primary-button page-info-save"
+          type="submit"
+          form="page-info-form"
+          disabled={!trimmedTitle || unchanged}
+        >
+          保存修改
+        </button>
+      )}
     >
-      <form className="dialog-form" onSubmit={submit}>
+      <form id="page-info-form" className="dialog-form" onSubmit={submit}>
         <label htmlFor="page-info-title">页面名称</label>
         <input
           id="page-info-title"
@@ -113,16 +140,24 @@ export function PageInfoDialog({ page, onClose }: PageInfoDialogProps) {
               onChange={(event) => setFooterRight(event.target.value)}
               maxLength={PAGE_FOOTER_RIGHT_MAX_LENGTH}
             />
+
+            <fieldset className="chord-display-picker">
+              <legend>和弦显示</legend>
+              {CHORD_DISPLAY_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={chordDisplay === option.value ? 'is-selected' : ''}
+                  aria-pressed={chordDisplay === option.value}
+                  onClick={() => setChordDisplay(option.value)}
+                >
+                  <strong>{option.label}</strong>
+                  <small>{option.description}</small>
+                </button>
+              ))}
+            </fieldset>
           </>
         )}
-
-        <button
-          className="primary-button"
-          type="submit"
-          disabled={!trimmedTitle || unchanged}
-        >
-          保存修改
-        </button>
       </form>
     </DialogShell>
   )

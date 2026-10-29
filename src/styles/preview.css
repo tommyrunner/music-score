@@ -27,6 +27,15 @@
 .preview-measures { display: grid; align-content: start; gap: 38px; margin-top: 34px; }
 .preview-measure { position: relative; min-width: 0; }
 .preview-chords { height: 26px; display: grid; align-items: center; padding-inline: 2px; font-family: "Iowan Old Style", serif; font-size: 12px; font-weight: 700; text-align: center; }
+.preview-chords.is-both { height: 34px; padding-bottom: 6px; }
+.preview-chords.is-diagram { height: 38px; }
+.preview-chords > span { min-width: 0; display: flex; align-items: flex-end; justify-content: center; }
+.preview-chords.is-both > span { align-items: center; }
+.preview-chords .chord-mark { width: 100%; }
+.preview-chords .chord-mark.is-both { width: auto; }
+.preview-chords.is-both .chord-mark-name { font-size: 10px; }
+.preview-chords.is-both .chord-mark-diagram { width: 22px; max-width: 22px; flex: none; }
+.preview-chords .chord-mark-diagram { max-width: 26px; }
 .preview-staff { position: relative; border-left: 1.5px solid #3e453f; border-right: 1.5px solid #3e453f; }
 .preview-string { height: 20px; display: grid; align-items: center; border-top: 1px solid #5a605b; }
 .preview-string:last-child { border-bottom: 1px solid #5a605b; }

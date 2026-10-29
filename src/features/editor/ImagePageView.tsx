@@ -1,4 +1,4 @@
-import { FileImage } from '@phosphor-icons/react'
+import { FileImage } from '../../components/icons'
 
 import type { ImagePage } from '../../domain/score/score-document'
 

@@ -13,6 +13,7 @@ import {
   scoreBookSchema,
   setFretAtPosition,
   type BarlineStyle,
+  type ChordDisplayMode,
   type FretValue,
   type ImagePage,
   type ScoreBook,
@@ -45,6 +46,7 @@ interface PageInfoPatch {
   subtitle?: string
   footerLeft?: string
   footerRight?: string
+  chordDisplay?: ChordDisplayMode
 }
 
 interface PageHistory {
@@ -394,11 +396,13 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
           footerRight: (info.footerRight ?? page.footerRight)
             .trim()
             .slice(0, PAGE_FOOTER_RIGHT_MAX_LENGTH),
+          chordDisplay: info.chordDisplay ?? page.chordDisplay,
         }
         const changed = nextPage.title !== page.title
           || nextPage.subtitle !== page.subtitle
           || nextPage.footerLeft !== page.footerLeft
           || nextPage.footerRight !== page.footerRight
+          || nextPage.chordDisplay !== page.chordDisplay
         if (!changed) return {}
 
         const active = findActivePage(state)

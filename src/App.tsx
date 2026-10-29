@@ -1,9 +1,9 @@
-import { ArrowLeft, Guitar, Plus } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useScoreStore } from './app/use-score-store'
 import { EditorGuideDialog } from './components/EditorGuideDialog'
 import { hasSeenEditorGuide, markEditorGuideSeen } from './components/editor-guide-storage'
+import { ArrowLeft, Guitar, Plus } from './components/icons'
 import { ImagePageView } from './features/editor/ImagePageView'
 import { ScoreEditor } from './features/editor/ScoreEditor'
 import { AddPageDialog, CreateBookDialog } from './features/library/BookDialogs'

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X } from '@phosphor-icons/react'
+
+import { X } from './icons'
 
 interface DialogShellProps {
   open: boolean

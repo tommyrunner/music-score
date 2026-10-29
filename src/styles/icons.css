@@ -1,0 +1,66 @@
+/* 图标与和弦指法图的共享样式。 */
+
+.chord-mark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.chord-mark.is-both {
+  flex-direction: row;
+  justify-content: center;
+  gap: 2px;
+}
+
+.chord-mark-name {
+  display: block;
+  font-family: "Iowan Old Style", "Songti SC", serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.chord-diagram {
+  display: block;
+  width: 100%;
+  max-width: 30px;
+  height: auto;
+  overflow: visible;
+  color: inherit;
+}
+
+.chord-diagram-grid line {
+  stroke: currentColor;
+  stroke-width: .9;
+  opacity: .5;
+}
+
+.chord-diagram-grid .chord-diagram-nut {
+  opacity: 1;
+  stroke-width: 2.6;
+}
+
+.chord-diagram-dot {
+  fill: currentColor;
+}
+
+.chord-diagram-open {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.1;
+}
+
+.chord-diagram-muted {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+}
+
+.chord-diagram-fret {
+  fill: currentColor;
+  font: 700 6.5px ui-monospace, monospace;
+}

@@ -1,8 +1,8 @@
-import { FileImage, ListDashes, MusicNotes, Plus } from '@phosphor-icons/react'
 import * as Popover from '@radix-ui/react-popover'
 import { useState } from 'react'
 
 import { useScoreStore } from '../../app/use-score-store'
+import { FileImage, ListDashes, MusicNotes, Plus } from '../../components/icons'
 import type { ScoreBook } from '../../domain/score/score-document'
 
 /**

@@ -1,9 +1,3 @@
-import {
-  CornersIn,
-  MagnifyingGlassMinus,
-  MagnifyingGlassPlus,
-  X,
-} from '@phosphor-icons/react'
 import * as Dialog from '@radix-ui/react-dialog'
 import {
   type ReactNode,
@@ -12,13 +6,22 @@ import {
   useState,
 } from 'react'
 
+import { ChordMark } from '../../components/ChordMark'
 import { FittedSingleLineText } from '../../components/FittedSingleLineText'
+import {
+  CornersIn,
+  MagnifyingGlassMinus,
+  MagnifyingGlassPlus,
+  X,
+} from '../../components/icons'
 import { ScoreSymbolLayer } from '../../components/ScoreSymbolLayer'
-import type {
-  ScoreBook,
-  ImagePage,
-  ScoreMeasure,
-  ScorePage,
+import {
+  DEFAULT_CHORD_DISPLAY,
+  type ChordDisplayMode,
+  type ScoreBook,
+  type ImagePage,
+  type ScoreMeasure,
+  type ScorePage,
 } from '../../domain/score/score-document'
 
 const PAPER_WIDTH = 794
@@ -106,13 +109,27 @@ function PreviewPageStage({
   )
 }
 
-function PreviewMeasure({ measure }: { measure: ScoreMeasure }) {
+function PreviewMeasure({
+  measure,
+  chordDisplay,
+}: {
+  measure: ScoreMeasure
+  chordDisplay: ChordDisplayMode
+}) {
   const gridColumns = `repeat(${measure.positions.length}, minmax(0, 1fr))`
 
   return (
     <div className="preview-measure">
-      <div className="preview-chords" aria-hidden="true" style={{ gridTemplateColumns: gridColumns }}>
-        {measure.positions.map((position) => <span key={position.id}>{position.chord}</span>)}
+      <div
+        className={`preview-chords is-${chordDisplay}`}
+        aria-hidden="true"
+        style={{ gridTemplateColumns: gridColumns }}
+      >
+        {measure.positions.map((position) => (
+          <span key={position.id}>
+            {position.chord && <ChordMark chord={position.chord} mode={chordDisplay} />}
+          </span>
+        ))}
       </div>
       <div className="preview-staff">
         {Array.from({ length: 6 }, (_, stringIndex) => (
@@ -165,7 +182,11 @@ function ScorePaper({ page, pageNumber }: { page: ScorePage; pageNumber: number 
       </header>
       <div className="preview-measures">
         {page.measures.map((measure) => (
-          <PreviewMeasure key={measure.id} measure={measure} />
+          <PreviewMeasure
+            key={measure.id}
+            measure={measure}
+            chordDisplay={page.chordDisplay ?? DEFAULT_CHORD_DISPLAY}
+          />
         ))}
       </div>
       <footer className="preview-score-footer">

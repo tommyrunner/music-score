@@ -1,8 +1,8 @@
-import { FileImage, MusicNotes } from '@phosphor-icons/react'
 import { useState, type FormEvent } from 'react'
 
 import { useScoreStore } from '../../app/use-score-store'
 import { DialogShell } from '../../components/DialogShell'
+import { FileImage, MusicNotes } from '../../components/icons'
 import { normalizeImageUrl } from '../../data/score-files'
 import { createImagePage } from '../../domain/score/score-document'
 

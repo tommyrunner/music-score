@@ -33,10 +33,22 @@
 
 .score-system { min-width: 0; }
 .chord-row { display: grid; min-height: 27px; padding-inline: 1%; }
-.chord-row button { position: relative; min-width: 0; padding: 0; border: 0; background: transparent; font-family: "Iowan Old Style", serif; font-size: 13px; font-weight: 700; cursor: pointer; }
+.chord-row.is-both { min-height: 36px; }
+.chord-row.is-diagram { min-height: 40px; }
+.chord-row button { position: relative; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 0 0 2px; border: 0; background: transparent; font-family: "Iowan Old Style", serif; font-size: 13px; font-weight: 700; line-height: 1.1; cursor: pointer; }
+.chord-row.is-letter button,
+.chord-row.is-both button { justify-content: center; }
+.chord-row.is-both button { padding-bottom: 6px; }
+.chord-row .chord-mark { width: 100%; }
+.chord-row .chord-mark-name { font-size: 13px; }
+.chord-row.is-both .chord-mark { width: auto; }
+.chord-row.is-both .chord-mark-name { font-size: 11px; }
+.chord-row.is-both .chord-mark-diagram { width: 24px; max-width: 24px; flex: none; }
 .chord-row button:hover,
 .chord-row button:focus-visible { color: var(--accent-dark); }
 .chord-hint { position: absolute; left: 50%; bottom: 4px; z-index: 3; width: max-content; padding: 2px 5px; color: var(--ink-faint); border: 1px solid color-mix(in srgb, var(--line) 72%, transparent); border-radius: 4px; background: color-mix(in srgb, var(--paper) 94%, transparent); font: 9px "Avenir Next", "PingFang SC", sans-serif; opacity: 0; pointer-events: none; transform: translate(-50%, 2px); transition: opacity 100ms ease, transform 100ms ease; }
+.chord-row.is-both .chord-hint,
+.chord-row.is-diagram .chord-hint { top: 0; bottom: auto; }
 .chord-row button:hover .chord-hint,
 .chord-row button:focus-visible .chord-hint { opacity: 1; transform: translate(-50%, 0); }
 
@@ -120,6 +132,12 @@
   .staff-wrap { height: 126px; }
   .note-grid button { margin-inline: 3%; font-size: 11px; }
   .note-value { min-width: 11px; height: 15px; padding-inline: 1px; }
+  .chord-row.is-both { min-height: 29px; }
+  .chord-row.is-diagram { min-height: 30px; }
+  .chord-row .chord-mark-name { font-size: 10px; }
+  .chord-row .chord-mark-diagram { max-width: 20px; }
+  .chord-row.is-both .chord-mark-name { font-size: 9px; }
+  .chord-row.is-both .chord-mark-diagram { width: 18px; max-width: 18px; }
   .chord-hint { font-size: 8px; }
   .add-lyric-line { opacity: .72; }
   .score-page-footer { align-items: flex-start; margin-top: 36px; }

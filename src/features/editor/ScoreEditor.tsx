@@ -1,9 +1,15 @@
-import { ClipboardText } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useScoreStore } from '../../app/use-score-store'
+import { ChordMark } from '../../components/ChordMark'
 import { DialogShell } from '../../components/DialogShell'
 import { FittedSingleLineText } from '../../components/FittedSingleLineText'
+import {
+  ClipboardText,
+  MultiNoteSwatch,
+  StaffLines,
+  SymbolSwatch,
+} from '../../components/icons'
 import {
   SCORE_SYMBOL_LABELS,
   STRING_RANGE_LABELS,
@@ -11,6 +17,7 @@ import {
 } from '../../components/score-symbol-meta'
 import { ScoreSymbolLayer } from '../../components/ScoreSymbolLayer'
 import {
+  DEFAULT_CHORD_DISPLAY,
   MAX_FRET,
   type FretValue,
   type ScorePage,
@@ -84,49 +91,6 @@ const TWO_POINT_SYMBOLS: Array<{ type: TwoPointSymbolType; label: string }> = [
   { type: 'pull-off', label: SCORE_SYMBOL_LABELS['pull-off'] },
 ]
 
-function SymbolSwatch({ type }: { type: ScoreSymbolType }) {
-  const isConnection = type === 'tie' || type === 'hammer-on' || type === 'pull-off'
-  const letter = type === 'hammer-on' ? 'H' : type === 'pull-off' ? 'P' : null
-
-  return (
-    <svg className="symbol-swatch" viewBox="0 0 20 44" aria-hidden="true">
-      {isConnection ? (
-        <>
-          <path className="symbol-swatch-line" d="M 2 16 Q 10 2 18 16" />
-          {letter && (
-            <text className="symbol-swatch-label" x="10" y="12" textAnchor="middle">
-              {letter}
-            </text>
-          )}
-        </>
-      ) : (
-        <>
-          <path className="symbol-swatch-arrow" d="M 6 7 L 10 2 L 14 7" />
-          {type === 'arpeggio' ? (
-            <path
-              className="symbol-swatch-line"
-              d="M 10 10 Q 5 15 10 20 T 10 30 T 10 40"
-            />
-          ) : (
-            <path className="symbol-swatch-line" d="M 10 10 L 10 40" />
-          )}
-        </>
-      )}
-    </svg>
-  )
-}
-
-function MultiNoteSwatch() {
-  return (
-    <svg className="symbol-swatch" viewBox="0 0 20 44" aria-hidden="true">
-      <path className="symbol-swatch-line" d="M 9 4 L 9 40" />
-      {[10, 22, 34].map((y) => (
-        <circle key={y} cx="14" cy={y} r="2.2" fill="currentColor" />
-      ))}
-    </svg>
-  )
-}
-
 /**
  * 六线谱页面编辑器。
  *
@@ -187,6 +151,7 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
     || (!multiNoteMode && selectedNote)
     || (selectedCell?.stringNumber === null && selectedPosition?.barline === 'single'),
   )
+  const chordDisplay = page.chordDisplay ?? DEFAULT_CHORD_DISPLAY
 
   const closeCellDialog = () => {
     setSelectedCell(null)
@@ -699,7 +664,7 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
               aria-label={`第 ${measureIndex + 1} 行六线谱`}
             >
               <div
-                className="chord-row"
+                className={`chord-row is-${chordDisplay}`}
                 aria-label={`第 ${measureIndex + 1} 行和弦`}
                 style={{ gridTemplateColumns: gridColumns }}
               >
@@ -712,23 +677,14 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
                       : '添加和弦'}
                     onClick={() => setSelectedChord({ measureId: measure.id, positionId: position.id })}
                   >
-                    {position.chord ?? <span className="chord-hint" aria-hidden="true">点击新增和弦</span>}
+                    {position.chord
+                      ? <ChordMark chord={position.chord} mode={chordDisplay} />
+                      : <span className="chord-hint" aria-hidden="true">新增和弦</span>}
                   </button>
                 ))}
               </div>
               <div className="staff-wrap">
-                <svg
-                  className="staff-lines"
-                  viewBox={`0 0 ${staffWidth} 168`}
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                >
-                  {Array.from({ length: 6 }, (_, index) => (
-                    <line key={index} x1="0" x2={staffWidth} y1={14 + index * 28} y2={14 + index * 28} />
-                  ))}
-                  <line className="edge-line" x1="0" x2="0" y1="14" y2="154" />
-                  <line className="edge-line" x1={staffWidth} x2={staffWidth} y1="14" y2="154" />
-                </svg>
+                <StaffLines width={staffWidth} />
                 <div
                   className="function-mark-grid"
                   style={{ gridTemplateColumns: gridColumns }}

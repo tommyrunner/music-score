@@ -1,3 +1,8 @@
+import * as Popover from '@radix-ui/react-popover'
+import { useRef, useState, type ChangeEvent } from 'react'
+
+import { useScoreStore } from '../../app/use-score-store'
+import { ProgressOverlay } from '../../components/ProgressOverlay'
 import {
   ArrowUUpLeft,
   ArrowUUpRight,
@@ -14,12 +19,7 @@ import {
   Info,
   PencilSimple,
   Selection,
-} from '@phosphor-icons/react'
-import * as Popover from '@radix-ui/react-popover'
-import { useRef, useState, type ChangeEvent } from 'react'
-
-import { useScoreStore } from '../../app/use-score-store'
-import { ProgressOverlay } from '../../components/ProgressOverlay'
+} from '../../components/icons'
 import {
   clearCloudSource,
   defaultCloudSource,

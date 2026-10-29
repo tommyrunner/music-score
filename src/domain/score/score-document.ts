@@ -43,6 +43,7 @@ const idSchema = z.string().min(1).max(100)
 const titleSchema = z.string().trim().min(1).max(MAX_TITLE_LENGTH)
 const fretSchema = z.union([z.number().int().min(0).max(MAX_FRET), z.literal('X')])
 const barlineSchema = z.enum(['single'])
+const chordDisplaySchema = z.enum(['both', 'diagram', 'letter'])
 
 const noteSchema = z
   .object({
@@ -138,6 +139,7 @@ const scorePageSchema = z
     subtitle: z.string().trim().max(SCORE_SUBTITLE_MAX_LENGTH).default(DEFAULT_SCORE_SUBTITLE),
     footerLeft: z.string().trim().max(PAGE_FOOTER_LEFT_MAX_LENGTH).default(DEFAULT_PAGE_FOOTER_LEFT),
     footerRight: z.string().trim().max(PAGE_FOOTER_RIGHT_MAX_LENGTH).default(DEFAULT_PAGE_FOOTER_RIGHT),
+    chordDisplay: chordDisplaySchema.default('both'),
     measures: z.array(measureSchema).min(1).max(500),
   })
   .strict()
@@ -209,6 +211,14 @@ export type FretValue = z.infer<typeof fretSchema>
  */
 export type BarlineStyle = z.infer<typeof barlineSchema>
 /**
+ * 和弦显示方式。
+ *
+ * - `both`：和弦名称 + 指法样图
+ * - `diagram`：只显示指法样图
+ * - `letter`：只显示和弦名称
+ */
+export type ChordDisplayMode = z.infer<typeof chordDisplaySchema>
+/**
  * 扫弦范围。
  */
 export type StringRange = z.infer<typeof stringRangeSchema>
@@ -244,6 +254,11 @@ export type ScoreBook = z.infer<typeof scoreBookSchema>
  * 谱本中的任意页面。
  */
 export type ScoreBookPage = ScoreBook['pages'][number]
+
+/**
+ * 页面默认的和弦显示方式。
+ */
+export const DEFAULT_CHORD_DISPLAY: ChordDisplayMode = 'both'
 
 const createPosition = (): ScorePosition => ({
   id: createId(),
