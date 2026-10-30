@@ -58,6 +58,30 @@ function formatDuration(totalSeconds: number) {
   return `${seconds} 秒`
 }
 
+/**
+ * 尝试把屏幕方向锁定为竖屏。
+ *
+ * 必须在全屏状态下调用；不支持方向锁定的浏览器（如 iOS Safari）会直接忽略。
+ */
+async function lockPortraitOrientation() {
+  try {
+    await screen.orientation.lock('portrait')
+  } catch {
+    // 浏览器不支持或拒绝锁定方向时，保持当前方向即可。
+  }
+}
+
+/**
+ * 解除屏幕方向锁定，恢复系统自动旋转。
+ */
+function unlockOrientation() {
+  try {
+    screen.orientation.unlock()
+  } catch {
+    // 不支持方向锁定的环境忽略即可。
+  }
+}
+
 function ReaderPage({
   page,
   pageNumber,
@@ -234,6 +258,7 @@ export function ReaderOverlay({
   const close = useCallback(() => {
     if (closingRef.current) return
     closingRef.current = true
+    unlockOrientation()
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {})
     onCloseRef.current()
   }, [])
@@ -323,7 +348,14 @@ export function ReaderOverlay({
     document.body.style.overflow = 'hidden'
 
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) close()
+      if (!document.fullscreenElement) {
+        close()
+        return
+      }
+      if (document.fullscreenElement === node) {
+        // 部分浏览器进入全屏时会切换到横屏，这里再锁一次竖屏。
+        void lockPortraitOrientation()
+      }
     }
     document.addEventListener('fullscreenchange', handleFullscreenChange)
 
@@ -331,8 +363,14 @@ export function ReaderOverlay({
       try {
         if (document.fullscreenEnabled && document.fullscreenElement !== node) {
           await node.requestFullscreen()
-          // 全屏请求返回前用户已经关闭时，立即退回到窗口状态。
-          if (closingRef.current) await document.exitFullscreen()
+        }
+        // 全屏成功后再锁定竖屏，避免部分浏览器自动横屏。
+        await lockPortraitOrientation()
+
+        // 全屏请求返回前用户已经关闭时，立即退回到窗口状态。
+        if (closingRef.current) {
+          unlockOrientation()
+          if (document.fullscreenElement) await document.exitFullscreen()
         }
       } catch {
         // 浏览器拒绝全屏时，保持窗口内的全屏覆盖层阅读。
