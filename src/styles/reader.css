@@ -38,8 +38,6 @@
 
 .reader-zoom {
   position: relative;
-  transform-origin: center;
-  will-change: transform;
 }
 
 .reader-paper-scaler {

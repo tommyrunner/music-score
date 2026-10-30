@@ -1,6 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import {
   type ReactNode,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -114,6 +115,26 @@ export function ScorePreview({
   onOpenChange: (open: boolean) => void
 }) {
   const [zoom, setZoom] = useState(1)
+  const canvasRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const handleWheel = (event: WheelEvent) => {
+      // 预览画布需要滚轮翻页，只有按住 Ctrl/⌘ 时才用滚轮缩放。
+      if (!event.ctrlKey && !event.metaKey) return
+      event.preventDefault()
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 100 : 1
+      setZoom((current) => Math.min(
+        MAX_ZOOM,
+        Math.max(MIN_ZOOM, current * Math.exp(-event.deltaY * unit * 0.0015)),
+      ))
+    }
+
+    canvas.addEventListener('wheel', handleWheel, { passive: false })
+    return () => canvas.removeEventListener('wheel', handleWheel)
+  }, [])
 
   const zoomOut = () => setZoom((current) => Math.max(MIN_ZOOM, current - ZOOM_STEP))
   const zoomIn = () => setZoom((current) => Math.min(MAX_ZOOM, current + ZOOM_STEP))
@@ -171,7 +192,7 @@ export function ScorePreview({
             </Dialog.Close>
           </header>
 
-          <div className="preview-canvas">
+          <div className="preview-canvas" ref={canvasRef}>
             {book.pages.map((page, pageIndex) => (
               <PreviewPageStage key={page.id} zoom={zoom}>
                 <PaperPage page={page} pageNumber={pageIndex + 1} />

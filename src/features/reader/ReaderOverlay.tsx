@@ -149,17 +149,16 @@ function ReaderPage({
     }
   }, [page.id])
 
+  const combinedScale = layout.scale * zoom
+
   return (
     <div className="reader-stage" ref={stageRef}>
-      <div
-        className="reader-zoom"
-        style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
-      >
+      <div className="reader-zoom">
         <div
           className="reader-page"
           style={{
-            width: PAPER_WIDTH * layout.scale,
-            height: layout.paperHeight * layout.scale,
+            width: PAPER_WIDTH * combinedScale,
+            height: layout.paperHeight * combinedScale,
             opacity: layout.scale > 0 ? 1 : 0,
           }}
         >
@@ -168,7 +167,8 @@ function ReaderPage({
             ref={paperRef}
             style={{
               width: PAPER_WIDTH,
-              transform: `scale(${layout.scale || 1})`,
+              // 缩放和位移合成同一个 transform，避免嵌套变换被拆成多份位图而发虚。
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${combinedScale || 1})`,
             }}
           >
             <PaperPage page={page} pageNumber={pageNumber} />
@@ -392,9 +392,10 @@ export function ReaderOverlay({
     if (!node) return
 
     const handleWheel = (event: WheelEvent) => {
-      if (!event.ctrlKey) return
+      // 阅读模式没有滚动需求，滚轮直接用于缩放；触控板捏合会带上 ctrlKey，同样走这里。
       event.preventDefault()
-      applyZoom(zoomRef.current * Math.exp(-event.deltaY * 0.002))
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 100 : 1
+      applyZoom(zoomRef.current * Math.exp(-event.deltaY * unit * 0.0015))
       revealControls()
     }
 
