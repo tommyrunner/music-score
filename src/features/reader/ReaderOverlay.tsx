@@ -25,10 +25,27 @@ const MIN_ZOOM = 1
 const MAX_ZOOM = 3
 /** 自动翻页的默认每页时长。 */
 const DEFAULT_PLAYBACK_SECONDS = 10
+/** 翻页轮播动画时长，与 reader.css 中的动画保持一致。 */
+const SLIDE_DURATION = 360
+/** 首次进入阅读时纸张放大动画时长。 */
+const ENTRANCE_DURATION = 620
+/** 进入阅读前预加载图片与字体资源的最长等待时间。 */
+const PRELOAD_TIMEOUT = 900
 
 interface Size {
   width: number
   height: number
+}
+
+interface PageLayout {
+  scale: number
+  paperHeight: number
+}
+
+interface PageTransition {
+  from: number
+  to: number
+  direction: 'next' | 'prev'
 }
 
 interface DurationFields {
@@ -87,20 +104,24 @@ function ReaderPage({
   pageNumber,
   zoom,
   pan,
+  initialLayout,
   onMeasure,
 }: {
   page: ScoreBookPage
   pageNumber: number
   zoom: number
   pan: { x: number; y: number }
-  onMeasure: (size: Size) => void
+  initialLayout?: PageLayout
+  onMeasure: (pageId: string, layout: PageLayout) => void
 }) {
   const stageRef = useRef<HTMLDivElement>(null)
   const paperRef = useRef<HTMLDivElement>(null)
   const measureHandlerRef = useRef(onMeasure)
-  const [layout, setLayout] = useState({ scale: 0, paperHeight: PAPER_MIN_HEIGHT })
+  const [layout, setLayout] = useState<PageLayout>(
+    () => initialLayout ?? { scale: 0, paperHeight: PAPER_MIN_HEIGHT },
+  )
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     measureHandlerRef.current = onMeasure
   }, [onMeasure])
 
@@ -130,10 +151,7 @@ function ReaderPage({
           ? current
           : { scale, paperHeight }
       ))
-      measureHandlerRef.current({
-        width: PAPER_WIDTH * scale,
-        height: paperHeight * scale,
-      })
+      measureHandlerRef.current(page.id, { scale, paperHeight })
     }
 
     const frame = window.requestAnimationFrame(measure)
@@ -212,6 +230,7 @@ export function ReaderOverlay({
   const viewportRef = useRef<Size>({ width: 0, height: 0 })
   const closingRef = useRef(false)
   const onCloseRef = useRef(onClose)
+  const transitionTimerRef = useRef<number | null>(null)
 
   const [pageIndex, setPageIndex] = useState(0)
   const [controlsVisible, setControlsVisible] = useState(true)
@@ -225,9 +244,14 @@ export function ReaderOverlay({
     minutes: '0',
     seconds: String(DEFAULT_PLAYBACK_SECONDS),
   })
+  const [layoutCache, setLayoutCache] = useState<Record<string, PageLayout>>({})
+  const [transition, setTransition] = useState<PageTransition | null>(null)
+  const [entranceState, setEntranceState] = useState<'pending' | 'playing' | 'done'>('pending')
+  const [resourcesReady, setResourcesReady] = useState(false)
 
   const pages = book.pages
   const currentPage = pages[pageIndex]
+  const currentPageId = currentPage?.id ?? null
   const isFirst = pageIndex <= 0
   const isLast = pageIndex >= pages.length - 1
   const totalDuration = durationFromFields(durationFields)
@@ -235,6 +259,50 @@ export function ReaderOverlay({
   useEffect(() => {
     onCloseRef.current = onClose
   }, [onClose])
+
+  // 进入阅读前先预载图片和字体，最多等待 PRELOAD_TIMEOUT，避免进入后出现空白跳变。
+  useEffect(() => {
+    let cancelled = false
+    const imageUrls = book.pages.flatMap((page) => (
+      page.type === 'image' ? [page.image.url] : []
+    ))
+    const preloadImage = (url: string) => new Promise<void>((resolve) => {
+      const image = new Image()
+      image.onload = () => resolve()
+      image.onerror = () => resolve()
+      image.src = url
+    })
+    const timeout = new Promise<void>((resolve) => {
+      window.setTimeout(resolve, PRELOAD_TIMEOUT)
+    })
+    const fontsReady = document.fonts
+      ? document.fonts.ready.then(() => {})
+      : Promise.resolve()
+
+    void Promise.race([
+      Promise.all([fontsReady, ...imageUrls.map(preloadImage)]).then(() => {}),
+      timeout,
+    ]).then(() => {
+      if (!cancelled) setResourcesReady(true)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [book])
+
+  useEffect(() => {
+    if (entranceState !== 'playing') return
+
+    const timer = window.setTimeout(() => setEntranceState('done'), ENTRANCE_DURATION)
+    return () => window.clearTimeout(timer)
+  }, [entranceState])
+
+  useEffect(() => () => {
+    if (transitionTimerRef.current !== null) {
+      window.clearTimeout(transitionTimerRef.current)
+    }
+  }, [])
 
   const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current === null) return
@@ -264,11 +332,29 @@ export function ReaderOverlay({
   }, [])
 
   const navigate = useCallback((nextIndex: number) => {
+    // 上一段轮播动画还没结束时忽略新的翻页，避免画面错位。
+    if (transitionTimerRef.current !== null) return
+
     const lastIndex = Math.max(pages.length - 1, 0)
     const clamped = Math.min(Math.max(nextIndex, 0), lastIndex)
     if (clamped === pageIndex) return
 
+    zoomRef.current = 1
+    panRef.current = { x: 0, y: 0 }
+    setZoom(1)
+    setPan({ x: 0, y: 0 })
+
+    setTransition({
+      from: pageIndex,
+      to: clamped,
+      direction: clamped > pageIndex ? 'next' : 'prev',
+    })
     setPageIndex(clamped)
+
+    transitionTimerRef.current = window.setTimeout(() => {
+      transitionTimerRef.current = null
+      setTransition(null)
+    }, SLIDE_DURATION)
 
     // 自动播放到最后一页时停止，并把操作栏交还给用户。
     if (isPlaying && clamped >= lastIndex) {
@@ -316,10 +402,28 @@ export function ReaderOverlay({
     setPan(clampedPan)
   }, [])
 
-  const handlePageMeasure = useCallback((size: Size) => {
-    pageSizeRef.current = size
+  const handlePageMeasure = useCallback((pageId: string, nextLayout: PageLayout) => {
+    setLayoutCache((current) => {
+      const existing = current[pageId]
+      if (existing
+        && existing.scale === nextLayout.scale
+        && existing.paperHeight === nextLayout.paperHeight) {
+        return current
+      }
+      return { ...current, [pageId]: nextLayout }
+    })
+
+    if (pageId !== currentPageId) return
+
+    pageSizeRef.current = {
+      width: PAPER_WIDTH * nextLayout.scale,
+      height: nextLayout.paperHeight * nextLayout.scale,
+    }
     applyZoom(zoomRef.current)
-  }, [applyZoom])
+    setEntranceState((current) => (
+      current === 'pending' && transitionTimerRef.current === null ? 'playing' : current
+    ))
+  }, [applyZoom, currentPageId])
 
   useLayoutEffect(() => {
     const node = gestureRef.current
@@ -334,7 +438,7 @@ export function ReaderOverlay({
     const observer = new ResizeObserver(measure)
     observer.observe(node)
     return () => observer.disconnect()
-  }, [applyZoom])
+  }, [applyZoom, resourcesReady])
 
   useEffect(() => {
     applyZoom(MIN_ZOOM)
@@ -378,16 +482,22 @@ export function ReaderOverlay({
     }
 
     void enterFullscreen()
-    scheduleHide()
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
       document.body.style.overflow = previousOverflow
       clearHideTimer()
     }
-  }, [clearHideTimer, close, scheduleHide])
+  }, [clearHideTimer, close])
 
   useEffect(() => {
+    if (!resourcesReady) return
+    scheduleHide()
+  }, [resourcesReady, scheduleHide])
+
+  useEffect(() => {
+    if (!resourcesReady) return
+
     const node = gestureRef.current
     if (!node) return
 
@@ -401,7 +511,7 @@ export function ReaderOverlay({
 
     node.addEventListener('wheel', handleWheel, { passive: false })
     return () => node.removeEventListener('wheel', handleWheel)
-  }, [applyZoom, revealControls])
+  }, [applyZoom, resourcesReady, revealControls])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -599,27 +709,64 @@ export function ReaderOverlay({
       aria-modal="true"
       aria-label={`${book.title} 阅读模式`}
     >
-      <div
-        className="reader-gesture-layer"
-        ref={gestureRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
-      >
-        {currentPage ? (
-          <ReaderPage
-            key={currentPage.id}
-            page={currentPage}
-            pageNumber={pageIndex + 1}
-            zoom={zoom}
-            pan={pan}
-            onMeasure={handlePageMeasure}
-          />
-        ) : (
-          <p className="reader-empty">这本谱本还没有页面，先回到编辑模式添加一页吧。</p>
-        )}
-      </div>
+      {!resourcesReady ? (
+        <div className="reader-loading" role="status">正在准备阅读…</div>
+      ) : (
+        <div
+          className="reader-gesture-layer"
+          ref={gestureRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+        >
+          {currentPage ? (
+            transition ? (
+              <>
+                <div
+                  className={`reader-slide-layer is-out-${transition.direction}`}
+                  aria-hidden="true"
+                >
+                  <ReaderPage
+                    key={`out-${pages[transition.from].id}`}
+                    page={pages[transition.from]}
+                    pageNumber={transition.from + 1}
+                    zoom={1}
+                    pan={{ x: 0, y: 0 }}
+                    initialLayout={layoutCache[pages[transition.from].id]}
+                    onMeasure={handlePageMeasure}
+                  />
+                </div>
+                <div className={`reader-slide-layer is-in-${transition.direction}`}>
+                  <ReaderPage
+                    key={`in-${currentPage.id}`}
+                    page={currentPage}
+                    pageNumber={pageIndex + 1}
+                    zoom={zoom}
+                    pan={pan}
+                    initialLayout={layoutCache[currentPage.id]}
+                    onMeasure={handlePageMeasure}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className={`reader-slide-layer${entranceState === 'playing' ? ' is-entering' : ''}`}>
+                <ReaderPage
+                  key={`page-${currentPage.id}`}
+                  page={currentPage}
+                  pageNumber={pageIndex + 1}
+                  zoom={zoom}
+                  pan={pan}
+                  initialLayout={layoutCache[currentPage.id]}
+                  onMeasure={handlePageMeasure}
+                />
+              </div>
+            )
+          ) : (
+            <p className="reader-empty">这本谱本还没有页面，先回到编辑模式添加一页吧。</p>
+          )}
+        </div>
+      )}
 
       <div
         className={`reader-controls${controlsVisible ? ' is-visible' : ''}`}

@@ -6,6 +6,7 @@
   overscroll-behavior: none;
   background: radial-gradient(circle at 50% 0%, #232b26 0%, #141815 68%);
   color: #e9eee9;
+  animation: reader-overlay-in 240ms ease;
 }
 
 .reader-gesture-layer {
@@ -14,6 +15,7 @@
   display: grid;
   place-items: center;
   background: transparent;
+  overflow: hidden;
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -33,7 +35,33 @@
 .reader-page {
   position: relative;
   flex: none;
-  animation: reader-page-in 220ms ease;
+}
+
+.reader-slide-layer {
+  position: absolute;
+  inset: 0;
+}
+
+/* 翻页：上一页滑出、下一页滑入，形成轮播效果。 */
+.reader-slide-layer.is-out-next {
+  animation: reader-slide-out-next 360ms cubic-bezier(.22, .7, .2, 1) both;
+}
+
+.reader-slide-layer.is-out-prev {
+  animation: reader-slide-out-prev 360ms cubic-bezier(.22, .7, .2, 1) both;
+}
+
+.reader-slide-layer.is-in-next {
+  animation: reader-slide-in-next 360ms cubic-bezier(.22, .7, .2, 1) both;
+}
+
+.reader-slide-layer.is-in-prev {
+  animation: reader-slide-in-prev 360ms cubic-bezier(.22, .7, .2, 1) both;
+}
+
+/* 首次进入阅读时，纸张由小放大出现。 */
+.reader-slide-layer.is-entering {
+  animation: reader-entrance 620ms cubic-bezier(.2, .78, .2, 1) both;
 }
 
 .reader-zoom {
@@ -55,6 +83,30 @@
   margin: 0;
   color: #9fada3;
   font-size: 14px;
+}
+
+.reader-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #9fada3;
+  font-size: 13px;
+  letter-spacing: .04em;
+  animation: reader-overlay-in 200ms ease;
+}
+
+.reader-loading::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, .16);
+  border-top-color: #ff9c7f;
+  border-radius: 50%;
+  animation: reader-spin 800ms linear infinite;
 }
 
 .reader-controls {
@@ -395,15 +447,44 @@
   font-size: 11px;
 }
 
-@keyframes reader-page-in {
+@keyframes reader-slide-in-next {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes reader-slide-in-prev {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes reader-slide-out-next {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+@keyframes reader-slide-out-prev {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes reader-entrance {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: scale(.86);
   }
   to {
     opacity: 1;
-    transform: none;
+    transform: scale(1);
   }
+}
+
+@keyframes reader-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes reader-spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 640px) {

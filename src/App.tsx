@@ -9,7 +9,7 @@ import { ScoreEditor } from './features/editor/ScoreEditor'
 import { AddPageDialog, CreateBookDialog } from './features/library/BookDialogs'
 import { HomeLibrary } from './features/library/HomeLibrary'
 import { PageDirectory } from './features/library/PageDirectory'
-import { ScorePreview } from './features/preview/ScorePreview'
+import { ReaderOverlay } from './features/reader/ReaderOverlay'
 import { WorkspaceToolbar } from './features/workspace/WorkspaceToolbar'
 
 /**
@@ -20,7 +20,7 @@ import { WorkspaceToolbar } from './features/workspace/WorkspaceToolbar'
 export function App() {
   const [isBookDialogOpen, setBookDialogOpen] = useState(false)
   const [isPageDialogOpen, setPageDialogOpen] = useState(false)
-  const [isPreviewOpen, setPreviewOpen] = useState(false)
+  const [isReaderOpen, setReaderOpen] = useState(false)
   const [showEditorGuide, setShowEditorGuide] = useState(() => !hasSeenEditorGuide())
   const startedHydrating = useRef(false)
   const books = useScoreStore((state) => state.books)
@@ -88,7 +88,7 @@ export function App() {
             activeBook={activeBook}
             books={books}
             isDirty={isDirty}
-            onPreview={() => setPreviewOpen(true)}
+            onPreview={() => setReaderOpen(true)}
           />
           <PageDirectory book={activeBook} onAddPage={() => setPageDialogOpen(true)} />
         </div>
@@ -115,7 +115,9 @@ export function App() {
       </main>
 
       <AddPageDialog open={isPageDialogOpen} onOpenChange={setPageDialogOpen} />
-      <ScorePreview open={isPreviewOpen} book={activeBook} onOpenChange={setPreviewOpen} />
+      {isReaderOpen && (
+        <ReaderOverlay book={activeBook} onClose={() => setReaderOpen(false)} />
+      )}
       {activePage?.type === 'score' && (
         <EditorGuideDialog open={showEditorGuide} onClose={dismissEditorGuide} />
       )}
