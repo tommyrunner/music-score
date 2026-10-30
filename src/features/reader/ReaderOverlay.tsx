@@ -14,7 +14,12 @@ import {
   PAPER_WIDTH,
   readPixelValue,
 } from '../../components/paper-layout'
-import type { ScoreBook, ScoreBookPage } from '../../domain/score/score-document'
+import {
+  DEFAULT_PLAYBACK_SECONDS,
+  MAX_PLAYBACK_SECONDS,
+  type ScoreBook,
+  type ScoreBookPage,
+} from '../../domain/score/score-document'
 
 /** 停止操作后隐藏底部操作栏的时长。 */
 const CONTROLS_HIDE_DELAY = 3000
@@ -23,8 +28,6 @@ const SWIPE_THRESHOLD = 48
 /** 缩放范围：1 表示适配屏幕。 */
 const MIN_ZOOM = 1
 const MAX_ZOOM = 3
-/** 自动翻页的默认每页时长。 */
-const DEFAULT_PLAYBACK_SECONDS = 10
 /** 翻页轮播动画时长，与 reader.css 中的动画保持一致。 */
 const SLIDE_DURATION = 360
 /** 首次进入阅读时纸张放大动画时长。 */
@@ -73,6 +76,20 @@ function formatDuration(totalSeconds: number) {
   if (hours > 0) return `${hours} 时 ${minutes} 分 ${seconds} 秒`
   if (minutes > 0) return `${minutes} 分 ${seconds} 秒`
   return `${seconds} 秒`
+}
+
+/**
+ * 把谱本配置的默认播放时长拆成时、分、秒输入框。
+ *
+ * @param totalSeconds 默认每页停留时长（秒）。
+ */
+function splitPlaybackSeconds(totalSeconds: number): DurationFields {
+  const safeSeconds = clamp(Math.round(totalSeconds), 1, MAX_PLAYBACK_SECONDS)
+  return {
+    hours: String(Math.floor(safeSeconds / 3600)),
+    minutes: String(Math.floor((safeSeconds % 3600) / 60)),
+    seconds: String(safeSeconds % 60),
+  }
 }
 
 /**
@@ -231,6 +248,7 @@ export function ReaderOverlay({
   const closingRef = useRef(false)
   const onCloseRef = useRef(onClose)
   const transitionTimerRef = useRef<number | null>(null)
+  const playbackPagesRef = useRef<HTMLDivElement>(null)
 
   const [pageIndex, setPageIndex] = useState(0)
   const [controlsVisible, setControlsVisible] = useState(true)
@@ -238,12 +256,12 @@ export function ReaderOverlay({
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [playbackPanelOpen, setPlaybackPanelOpen] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [playbackSeconds, setPlaybackSeconds] = useState(DEFAULT_PLAYBACK_SECONDS)
-  const [durationFields, setDurationFields] = useState<DurationFields>({
-    hours: '0',
-    minutes: '0',
-    seconds: String(DEFAULT_PLAYBACK_SECONDS),
-  })
+  const [playbackFieldsByPage, setPlaybackFieldsByPage] = useState<Record<string, DurationFields>>(
+    () => Object.fromEntries(
+      book.pages.map((page) => [page.id, splitPlaybackSeconds(page.playbackSeconds)]),
+    ),
+  )
+  const [settingsPageIndex, setSettingsPageIndex] = useState(0)
   const [layoutCache, setLayoutCache] = useState<Record<string, PageLayout>>({})
   const [transition, setTransition] = useState<PageTransition | null>(null)
   const [entranceState, setEntranceState] = useState<'pending' | 'playing' | 'done'>('pending')
@@ -254,11 +272,37 @@ export function ReaderOverlay({
   const currentPageId = currentPage?.id ?? null
   const isFirst = pageIndex <= 0
   const isLast = pageIndex >= pages.length - 1
-  const totalDuration = durationFromFields(durationFields)
+  const fieldsForPage = (pageId: string) => (
+    playbackFieldsByPage[pageId]
+    ?? splitPlaybackSeconds(
+      pages.find((item) => item.id === pageId)?.playbackSeconds ?? DEFAULT_PLAYBACK_SECONDS,
+    )
+  )
+  const secondsForPage = (pageId: string) => (
+    Math.max(durationFromFields(fieldsForPage(pageId)), 1)
+  )
+  const currentPageDuration = currentPage
+    ? secondsForPage(currentPage.id)
+    : DEFAULT_PLAYBACK_SECONDS
+  const settingsPage = pages[settingsPageIndex] ?? currentPage
+  const settingsFields = settingsPage
+    ? fieldsForPage(settingsPage.id)
+    : splitPlaybackSeconds(DEFAULT_PLAYBACK_SECONDS)
+  const settingsDuration = settingsPage
+    ? secondsForPage(settingsPage.id)
+    : DEFAULT_PLAYBACK_SECONDS
 
   useEffect(() => {
     onCloseRef.current = onClose
   }, [onClose])
+
+  useEffect(() => {
+    if (!playbackPanelOpen) return
+
+    const container = playbackPagesRef.current
+    const activeTab = container?.querySelector<HTMLButtonElement>('button[aria-selected="true"]')
+    activeTab?.scrollIntoView({ block: 'nearest', inline: 'center' })
+  }, [playbackPanelOpen, settingsPageIndex])
 
   // 进入阅读前先预载图片和字体，最多等待 PRELOAD_TIMEOUT，避免进入后出现空白跳变。
   useEffect(() => {
@@ -540,10 +584,10 @@ export function ReaderOverlay({
 
     const timer = window.setTimeout(() => {
       navigate(pageIndex + 1)
-    }, playbackSeconds * 1000)
+    }, currentPageDuration * 1000)
 
     return () => window.clearTimeout(timer)
-  }, [isPlaying, navigate, pageIndex, playbackSeconds])
+  }, [currentPageDuration, isPlaying, navigate, pageIndex])
 
   const goPrevious = () => {
     navigate(pageIndex - 1)
@@ -556,6 +600,7 @@ export function ReaderOverlay({
   }
 
   const openPlaybackPanel = () => {
+    setSettingsPageIndex(pageIndex)
     setPlaybackPanelOpen(true)
     setControlsVisible(true)
     clearHideTimer()
@@ -567,8 +612,7 @@ export function ReaderOverlay({
   }
 
   const startPlayback = () => {
-    if (totalDuration < 1 || pages.length <= 1 || isLast) return
-    setPlaybackSeconds(totalDuration)
+    if (pages.length <= 1 || isLast) return
     setIsPlaying(true)
     setPlaybackPanelOpen(false)
     revealControls()
@@ -579,14 +623,22 @@ export function ReaderOverlay({
     revealControls()
   }
 
-  const updateDurationField = (field: keyof DurationFields, value: string) => {
+  const updatePlaybackField = (field: keyof DurationFields, value: string) => {
+    if (!settingsPage) return
+
     const limit = field === 'hours' ? 23 : 59
     const digits = value.replace(/\D/g, '')
     const numeric = Number(digits)
     const nextValue = digits === ''
       ? ''
       : String(Math.min(Number.isFinite(numeric) ? numeric : 0, limit))
-    setDurationFields((current) => ({ ...current, [field]: nextValue }))
+    setPlaybackFieldsByPage((current) => ({
+      ...current,
+      [settingsPage.id]: {
+        ...(current[settingsPage.id] ?? fieldsForPage(settingsPage.id)),
+        [field]: nextValue,
+      },
+    }))
   }
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -788,7 +840,7 @@ export function ReaderOverlay({
             aria-expanded={playbackPanelOpen}
             aria-pressed={isPlaying}
             title={isPlaying
-              ? `暂停自动翻页（每页 ${formatDuration(playbackSeconds)}）`
+              ? `暂停自动翻页（当前页 ${formatDuration(currentPageDuration)}）`
               : '自动翻页'}
           >
             {isPlaying
@@ -858,40 +910,62 @@ export function ReaderOverlay({
               </button>
             </div>
 
-            <div className="reader-play-duration" role="group" aria-label="每页停留时长">
-              <label>
-                <span>时</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={23}
-                  inputMode="numeric"
-                  value={durationFields.hours}
-                  onChange={(event) => updateDurationField('hours', event.target.value)}
-                />
-              </label>
-              <label>
-                <span>分</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={59}
-                  inputMode="numeric"
-                  value={durationFields.minutes}
-                  onChange={(event) => updateDurationField('minutes', event.target.value)}
-                />
-              </label>
-              <label>
-                <span>秒</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={59}
-                  inputMode="numeric"
-                  value={durationFields.seconds}
-                  onChange={(event) => updateDurationField('seconds', event.target.value)}
-                />
-              </label>
+            <div className="reader-play-config">
+              <div className="reader-play-pages" role="tablist" aria-label="选择页码" ref={playbackPagesRef}>
+                {pages.map((item, index) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={index === settingsPageIndex}
+                    className={index === settingsPageIndex ? 'is-selected' : ''}
+                    title={item.title}
+                    onClick={() => setSettingsPageIndex(index)}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+              </div>
+
+              <div className="reader-play-page-label">
+                第 {settingsPageIndex + 1} 页 · {settingsPage?.title ?? '暂无页面'}
+              </div>
+
+              <div className="reader-play-duration" role="group" aria-label="每页停留时长">
+                <label>
+                  <span>时</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={23}
+                    inputMode="numeric"
+                    value={settingsFields.hours}
+                    onChange={(event) => updatePlaybackField('hours', event.target.value)}
+                  />
+                </label>
+                <label>
+                  <span>分</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
+                    inputMode="numeric"
+                    value={settingsFields.minutes}
+                    onChange={(event) => updatePlaybackField('minutes', event.target.value)}
+                  />
+                </label>
+                <label>
+                  <span>秒</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
+                    inputMode="numeric"
+                    value={settingsFields.seconds}
+                    onChange={(event) => updatePlaybackField('seconds', event.target.value)}
+                  />
+                </label>
+              </div>
             </div>
 
             <p className="reader-play-hint">
@@ -899,9 +973,7 @@ export function ReaderOverlay({
                 ? '当前谱本只有一页，无需自动翻页。'
                 : isLast
                   ? '当前已经是最后一页，请先翻到前面的页面再开始播放。'
-                  : totalDuration > 0
-                    ? `每页停留 ${formatDuration(totalDuration)}，结束后自动翻到下一页。`
-                    : '请设置大于 0 的播放时长。'}
+                  : `第 ${settingsPageIndex + 1} 页停留 ${formatDuration(settingsDuration)}，每页按各自配置自动翻页；此处修改仅本次播放生效。`}
             </p>
 
             <div className="reader-play-footer">
@@ -911,7 +983,7 @@ export function ReaderOverlay({
               <button
                 type="button"
                 className="reader-play-start"
-                disabled={totalDuration < 1 || pages.length <= 1 || isLast}
+                disabled={pages.length <= 1 || isLast}
                 onClick={startPlayback}
               >
                 <Play size={14} weight="fill" />

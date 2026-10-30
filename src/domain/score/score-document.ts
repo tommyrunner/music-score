@@ -38,6 +38,14 @@ export const DEFAULT_PAGE_FOOTER_LEFT = '弦间'
  * 页面默认右下角文字。
  */
 export const DEFAULT_PAGE_FOOTER_RIGHT = ''
+/**
+ * 自动播放默认每页停留时长（秒）。
+ */
+export const DEFAULT_PLAYBACK_SECONDS = 10
+/**
+ * 自动播放每页停留时长上限（秒），即 23:59:59。
+ */
+export const MAX_PLAYBACK_SECONDS = 86399
 
 const idSchema = z.string().min(1).max(100)
 const titleSchema = z.string().trim().min(1).max(MAX_TITLE_LENGTH)
@@ -140,6 +148,12 @@ const scorePageSchema = z
     footerLeft: z.string().trim().max(PAGE_FOOTER_LEFT_MAX_LENGTH).default(DEFAULT_PAGE_FOOTER_LEFT),
     footerRight: z.string().trim().max(PAGE_FOOTER_RIGHT_MAX_LENGTH).default(DEFAULT_PAGE_FOOTER_RIGHT),
     chordDisplay: chordDisplaySchema.default('both'),
+    playbackSeconds: z
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_PLAYBACK_SECONDS)
+      .default(DEFAULT_PLAYBACK_SECONDS),
     measures: z.array(measureSchema).min(1).max(500),
   })
   .strict()
@@ -166,6 +180,12 @@ const imagePageSchema = z
     id: idSchema,
     type: z.literal('image'),
     title: titleSchema,
+    playbackSeconds: z
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_PLAYBACK_SECONDS)
+      .default(DEFAULT_PLAYBACK_SECONDS),
     image: z
       .object({
         url: imageUrlSchema,
@@ -196,6 +216,13 @@ export const scoreBookSchema = z
         ]),
       })
       .strict(),
+    // 旧版谱本级默认时长，仅用于兼容已保存的数据；播放以页面级配置为准。
+    playbackSeconds: z
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_PLAYBACK_SECONDS)
+      .optional(),
     pages: z.array(z.discriminatedUnion('type', [scorePageSchema, imagePageSchema])).max(200),
     createdAt: z.string().min(1),
     updatedAt: z.string().min(1),

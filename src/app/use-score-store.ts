@@ -7,6 +7,7 @@ import { create } from 'zustand'
 import {
   createScoreBook,
   createScorePage,
+  MAX_PLAYBACK_SECONDS,
   PAGE_FOOTER_LEFT_MAX_LENGTH,
   PAGE_FOOTER_RIGHT_MAX_LENGTH,
   SCORE_SUBTITLE_MAX_LENGTH,
@@ -80,6 +81,9 @@ interface ScoreStore {
   addScorePage: (title: string) => void
   addImagePage: (page: ImagePage) => void
   updatePageInfo: (pageId: string, info: PageInfoPatch) => void
+  updatePagePlaybackSeconds: (
+    updates: Array<{ pageId: string; seconds: number }>,
+  ) => void
   addMeasure: () => void
   undo: () => void
   redo: () => void
@@ -433,6 +437,44 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
         pages: book.pages.map((candidate) =>
           candidate.id === pageId ? { ...candidate, title: trimmedTitle } : candidate,
         ),
+        updatedAt: new Date().toISOString(),
+      }
+
+      return {
+        books: state.books.map((candidate) =>
+          candidate.id === updatedBook.id ? updatedBook : candidate,
+        ),
+        ...markBookDirty(state, book.id),
+      }
+    }),
+
+  updatePagePlaybackSeconds: (updates) =>
+    set((state) => {
+      if (updates.length === 0) return {}
+
+      const normalized = updates.map(({ pageId, seconds }) => ({
+        pageId,
+        seconds: Math.min(Math.max(Math.round(seconds), 1), MAX_PLAYBACK_SECONDS),
+      }))
+      const book = state.books.find((candidate) =>
+        normalized.some((update) =>
+          candidate.pages.some((page) => page.id === update.pageId),
+        ),
+      )
+      if (!book) return {}
+
+      let changed = false
+      const pages = book.pages.map((page) => {
+        const update = normalized.find((candidate) => candidate.pageId === page.id)
+        if (!update || update.seconds === page.playbackSeconds) return page
+        changed = true
+        return { ...page, playbackSeconds: update.seconds }
+      })
+      if (!changed) return {}
+
+      const updatedBook: ScoreBook = {
+        ...book,
+        pages,
         updatedAt: new Date().toISOString(),
       }
 

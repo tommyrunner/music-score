@@ -490,10 +490,11 @@ export function WorkspaceToolbar({
         onChange={importFiles}
       />
 
-      {pageInfoOpen && activePage && (
+      {pageInfoOpen && activePage && activeBook && (
         <PageInfoDialog
           key={activePage.id}
           page={activePage}
+          pages={activeBook.pages}
           onClose={() => setPageInfoOpen(false)}
         />
       )}

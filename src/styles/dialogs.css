@@ -104,6 +104,22 @@
 .chord-display-picker button.is-selected { color: var(--ink); border-color: var(--accent); background: #fffaf6; box-shadow: inset 0 0 0 1px var(--accent); }
 .chord-display-picker strong { font-size: 11px; }
 .chord-display-picker small { color: var(--ink-faint); font-size: 9px; line-height: 1.4; }
+.playback-duration-picker { display: grid; gap: 8px; margin: 3px 0 0; padding: 0; border: 0; }
+.playback-duration-picker legend { margin-bottom: 9px; padding: 0; font-size: 12px; font-weight: 650; }
+.playback-duration-hint { margin: 0; color: var(--ink-faint); font-size: 9px; line-height: 1.5; }
+.playback-config-card { display: grid; gap: 8px; padding: 10px; border: 1px solid #d8dcd6; border-radius: 12px; background: rgba(255, 255, 255, .72); }
+.playback-page-tabs { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.playback-page-tabs::-webkit-scrollbar { display: none; }
+.playback-page-tabs button { flex: none; min-width: 30px; height: 30px; padding: 0 8px; color: var(--ink-soft); border: 1px solid #ccd0cb; border-radius: 8px; background: rgba(255, 255, 255, .7); cursor: pointer; font: 600 11px ui-monospace, monospace; }
+.playback-page-tabs button:hover { border-color: #9ba49c; background: #fff; }
+.playback-page-tabs button.is-selected { color: #fffaf6; border-color: var(--accent-dark); background: var(--accent); }
+.playback-page-current { display: flex; align-items: baseline; gap: 8px; min-width: 0; color: var(--ink-soft); font-size: 10px; }
+.playback-page-current strong { flex: none; color: var(--ink); font-size: 11px; }
+.playback-page-current span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.playback-duration-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.playback-duration-fields label { display: grid; gap: 5px; color: var(--ink-soft); font-size: 10px; }
+.playback-duration-fields input { height: 40px; text-align: center; font: 600 15px ui-monospace, monospace; }
+.playback-duration-error { margin: 0; color: #a13f2e; font-size: 10px; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 @media (max-width: 480px) {
