@@ -4,6 +4,7 @@ import { useScoreStore } from '../../app/use-score-store'
 import { DialogShell } from '../../components/DialogShell'
 import { ArrowUpRight, Guitar, Plus, Trash } from '../../components/icons'
 import type { ScoreBook } from '../../domain/score/score-document'
+import { ReaderOverlay } from '../reader/ReaderOverlay'
 import { WorkspaceToolbar } from '../workspace/WorkspaceToolbar'
 
 interface HomeLibraryProps {
@@ -28,6 +29,7 @@ export function HomeLibrary({ books, onCreateBook }: HomeLibraryProps) {
   const deleteBook = useScoreStore((state) => state.deleteBook)
   const [pendingDelete, setPendingDelete] = useState<ScoreBook | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [readingBook, setReadingBook] = useState<ScoreBook | null>(null)
 
   const confirmDelete = async () => {
     if (!pendingDelete || deleting) return
@@ -128,6 +130,15 @@ export function HomeLibrary({ books, onCreateBook }: HomeLibraryProps) {
                     </span>
                   </button>
                   <button
+                    className="shelf-book-read"
+                    type="button"
+                    aria-label={`阅读谱本 ${book.title}`}
+                    title="进入阅读模式"
+                    onClick={() => setReadingBook(book)}
+                  >
+                    <Guitar size={15} />
+                  </button>
+                  <button
                     className="shelf-book-delete"
                     type="button"
                     aria-label={`删除谱本 ${book.title}`}
@@ -176,6 +187,10 @@ export function HomeLibrary({ books, onCreateBook }: HomeLibraryProps) {
             确定要删除「<strong>{pendingDelete.title}</strong>」吗？
           </p>
         </DialogShell>
+      )}
+
+      {readingBook && (
+        <ReaderOverlay book={readingBook} onClose={() => setReadingBook(null)} />
       )}
     </div>
   )

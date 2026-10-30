@@ -8,6 +8,7 @@ import './styles/workspace.css'
 import './styles/editor.css'
 import './styles/dialogs.css'
 import './styles/preview.css'
+import './styles/reader.css'
 
 const rootElement = document.getElementById('root')
 
