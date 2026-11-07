@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useScoreStore } from '../../app/use-score-store'
 import { ChordMark } from '../../components/ChordMark'
@@ -6,6 +6,7 @@ import { DialogShell } from '../../components/DialogShell'
 import { FittedSingleLineText } from '../../components/FittedSingleLineText'
 import {
   ClipboardText,
+  Lightning,
   MultiNoteSwatch,
   StaffLines,
   SymbolSwatch,
@@ -36,6 +37,28 @@ interface SelectedCell {
 type CellDialogTab = 'note' | 'function'
 type OnePointSymbolType = Extract<ScoreSymbolType, 'arpeggio' | 'sweep'>
 type TwoPointSymbolType = Extract<ScoreSymbolType, 'tie' | 'hammer-on' | 'pull-off'>
+
+/** 快捷填写开关在同一个会话内跨页面保留。 */
+let quickFillPreferred = false
+
+/**
+ * 找到页面中按视觉顺序排列的第一个空白节点。
+ *
+ * @param page 当前六线谱页面。
+ */
+function findFirstEmptyCell(page: ScorePage): SelectedCell | null {
+  for (const measure of page.measures) {
+    for (let stringNumber = 1; stringNumber <= 6; stringNumber += 1) {
+      for (const position of measure.positions) {
+        if (!position.notes.some((note) => note.string === stringNumber)) {
+          return { measureId: measure.id, positionId: position.id, stringNumber }
+        }
+      }
+    }
+  }
+
+  return null
+}
 
 interface PendingSymbol {
   type: TwoPointSymbolType
@@ -132,6 +155,214 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
   const lastAnchorRef = useRef<{ measureId: string; positionId: string } | null>(null)
   const suppressClickRef = useRef(false)
   const marqueeDragRef = useRef<MarqueeDrag | null>(null)
+
+  const [quickFillEnabled, setQuickFillEnabled] = useState(quickFillPreferred)
+  const [quickTarget, setQuickTarget] = useState<SelectedCell | null>(
+    () => (quickFillPreferred ? findFirstEmptyCell(page) : null),
+  )
+
+  const quickNodes = useMemo(() => page.measures.flatMap((measure) => (
+    Array.from({ length: 6 }, (_, stringIndex) => (
+      measure.positions.map((position) => ({
+        measureId: measure.id,
+        positionId: position.id,
+        stringNumber: stringIndex + 1,
+        filled: position.notes.some((note) => note.string === stringIndex + 1),
+      }))
+    )).flat()
+  )), [page.measures])
+
+  const quickPositions = useMemo(() => page.measures.flatMap((measure) => (
+    measure.positions.map((position) => ({
+      measureId: measure.id,
+      positionId: position.id,
+      firstEmptyString: [1, 2, 3, 4, 5, 6].find((stringNumber) => (
+        !position.notes.some((note) => note.string === stringNumber)
+      )) ?? null,
+    }))
+  )), [page.measures])
+
+  const advanceQuickTarget = useCallback((from: SelectedCell) => {
+    const fromIndex = quickNodes.findIndex((node) => (
+      node.measureId === from.measureId
+      && node.positionId === from.positionId
+      && node.stringNumber === from.stringNumber
+    ))
+    const ordered = fromIndex >= 0
+      ? [...quickNodes.slice(fromIndex + 1), ...quickNodes.slice(0, fromIndex + 1)]
+      : quickNodes
+    const next = ordered.find((node) => (
+      !node.filled
+      && !(node.measureId === from.measureId
+        && node.positionId === from.positionId
+        && node.stringNumber === from.stringNumber)
+    ))
+    if (!next) return
+
+    setQuickTarget({
+      measureId: next.measureId,
+      positionId: next.positionId,
+      stringNumber: next.stringNumber,
+    })
+  }, [quickNodes])
+
+  const advanceQuickTargetToNextPosition = useCallback((from: SelectedCell) => {
+    const fromIndex = quickPositions.findIndex((item) => (
+      item.measureId === from.measureId && item.positionId === from.positionId
+    ))
+    const ordered = fromIndex >= 0
+      ? [...quickPositions.slice(fromIndex + 1), ...quickPositions.slice(0, fromIndex + 1)]
+      : quickPositions
+    const next = ordered.find((item) => (
+      item.firstEmptyString !== null
+      && !(item.measureId === from.measureId && item.positionId === from.positionId)
+    ))
+    if (!next || next.firstEmptyString === null) return
+
+    setQuickTarget({
+      measureId: next.measureId,
+      positionId: next.positionId,
+      stringNumber: next.firstEmptyString,
+    })
+  }, [quickPositions])
+
+  const toggleQuickFill = () => {
+    if (quickFillEnabled) {
+      quickFillPreferred = false
+      setQuickFillEnabled(false)
+      setQuickTarget(null)
+      return
+    }
+
+    if (isSelectMode) toggleSelectMode()
+
+    quickFillPreferred = true
+    const firstEmpty = quickNodes.find((node) => !node.filled) ?? quickNodes[0]
+    setQuickTarget(firstEmpty
+      ? {
+          measureId: firstEmpty.measureId,
+          positionId: firstEmpty.positionId,
+          stringNumber: firstEmpty.stringNumber,
+        }
+      : null)
+    setQuickFillEnabled(true)
+  }
+
+  useEffect(() => {
+    if (!quickFillEnabled) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      if (event.repeat) return
+
+      const eventTarget = event.target
+      if (eventTarget instanceof HTMLElement
+        && eventTarget.closest('input, textarea, select, [contenteditable="true"]')) return
+      if (document.querySelector('.dialog-panel')) return
+      if (isSelectMode) return
+
+      const key = event.key.toLowerCase()
+      if (key === 'escape') {
+        setQuickFillEnabled(false)
+        setQuickTarget(null)
+        return
+      }
+      if (!quickTarget) return
+
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        event.preventDefault()
+        setQuickTarget((current) => {
+          if (!current || current.stringNumber === null) return current
+          const nextString = current.stringNumber + (event.key === 'ArrowUp' ? -1 : 1)
+          const clamped = Math.min(Math.max(nextString, 1), 6)
+          return clamped === current.stringNumber
+            ? current
+            : { ...current, stringNumber: clamped }
+        })
+        return
+      }
+
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault()
+        const targetIndex = quickNodes.findIndex((node) => (
+          node.measureId === quickTarget.measureId
+          && node.positionId === quickTarget.positionId
+          && node.stringNumber === quickTarget.stringNumber
+        ))
+        const previous = targetIndex > 0 ? quickNodes[targetIndex - 1] : null
+        if (!previous) return
+
+        if (previous.filled) {
+          updateFret(previous.measureId, previous.positionId, previous.stringNumber, null)
+        }
+        setQuickTarget({
+          measureId: previous.measureId,
+          positionId: previous.positionId,
+          stringNumber: previous.stringNumber,
+        })
+        return
+      }
+
+      if (key === 'd') {
+        event.preventDefault()
+        setCellDialogTab('note')
+        setSelectedSymbol(null)
+        setSelectedCell({
+          measureId: quickTarget.measureId,
+          positionId: quickTarget.positionId,
+          stringNumber: null,
+        })
+        setMultiNoteMode(true)
+        return
+      }
+
+      if (key === 'l') {
+        const measure = page.measures.find((candidate) => candidate.id === quickTarget.measureId)
+        const position = measure?.positions.find(
+          (candidate) => candidate.id === quickTarget.positionId,
+        )
+        event.preventDefault()
+        updateBarline(
+          quickTarget.measureId,
+          quickTarget.positionId,
+          position?.barline === 'single' ? null : 'single',
+        )
+        advanceQuickTargetToNextPosition(quickTarget)
+        return
+      }
+
+      if (!/^[0-6]$/.test(key) || quickTarget.stringNumber === null) return
+
+      event.preventDefault()
+      updateFret(
+        quickTarget.measureId,
+        quickTarget.positionId,
+        quickTarget.stringNumber,
+        Number(key) as FretValue,
+      )
+      advanceQuickTarget(quickTarget)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [
+    advanceQuickTarget,
+    advanceQuickTargetToNextPosition,
+    isSelectMode,
+    page.measures,
+    quickFillEnabled,
+    quickNodes,
+    quickTarget,
+    updateBarline,
+    updateFret,
+  ])
+
+  useEffect(() => {
+    if (!quickFillEnabled || !quickTarget) return
+
+    const node = document.querySelector<HTMLElement>('.note-grid button.is-quick-target')
+    node?.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' })
+  }, [quickFillEnabled, quickTarget])
 
   const selectedMeasure = selectedCell
     ? page.measures.find((measure) => measure.id === selectedCell.measureId) ?? null
@@ -230,17 +461,14 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
   const toggleMultiNote = (stringNumber: number, fret: FretValue) => {
     if (!selectedCell || !selectedPosition) return
     const currentNote = selectedPosition.notes.find((note) => note.string === stringNumber)
-    const selectedFret = currentNote?.fret ?? 'X'
 
-    if (selectedFret === fret) {
-      if (currentNote) {
-        updateFret(
-          selectedCell.measureId,
-          selectedCell.positionId,
-          stringNumber,
-          null,
-        )
-      }
+    if (currentNote?.fret === fret) {
+      updateFret(
+        selectedCell.measureId,
+        selectedCell.positionId,
+        stringNumber,
+        null,
+      )
       return
     }
 
@@ -252,19 +480,26 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
     )
   }
 
+  const selectAllMultiNoteMuted = () => {
+    if (!selectedCell) return
+    updatePositionNotes(
+      selectedCell.measureId,
+      selectedCell.positionId,
+      Array.from({ length: 6 }, (_, index) => ({
+        string: index + 1,
+        fret: 'X' as const,
+      })),
+    )
+  }
+
   const finishMultiNote = () => {
     if (selectedCell && selectedPosition) {
       updatePositionNotes(
         selectedCell.measureId,
         selectedCell.positionId,
-        Array.from({ length: 6 }, (_, index) => {
-          const stringNumber = index + 1
-          const note = selectedPosition.notes.find(
-            (candidate) => candidate.string === stringNumber,
-          )
-          return { string: stringNumber, fret: note?.fret ?? 'X' }
-        }),
+        selectedPosition.notes,
       )
+      if (quickFillEnabled) advanceQuickTargetToNextPosition(selectedCell)
     }
     closeCellDialog()
   }
@@ -729,6 +964,10 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
                           && node.positionId === position.id
                           && node.stringNumber === stringNumber,
                       )
+                      const isQuickTarget = quickFillEnabled
+                        && quickTarget?.measureId === measure.id
+                        && quickTarget?.positionId === position.id
+                        && quickTarget?.stringNumber === stringNumber
                       return (
                         <button
                           key={`${position.id}-${stringNumber}`}
@@ -736,17 +975,28 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
                             note ? 'has-note' : '',
                             isSymbolStart ? 'is-symbol-start' : '',
                             isSelectedNode ? 'is-selected-node' : '',
+                            isQuickTarget ? 'is-quick-target' : '',
                           ].filter(Boolean).join(' ')}
                           aria-pressed={isSelectMode ? isSelectedNode : undefined}
                           data-measure-id={measure.id}
                           data-position-id={position.id}
                           data-string-number={stringNumber}
                           aria-label={`第 ${measureIndex + 1} 小节，第 ${positionIndex + 1} 列，${stringNumber} 弦，${label}`}
-                          onClick={() => handleNoteClick({
-                            measureId: measure.id,
-                            positionId: position.id,
-                            stringNumber,
-                          })}
+                          onClick={() => {
+                            if (quickFillEnabled && !isSelectMode) {
+                              setQuickTarget({
+                                measureId: measure.id,
+                                positionId: position.id,
+                                stringNumber,
+                              })
+                              return
+                            }
+                            handleNoteClick({
+                              measureId: measure.id,
+                              positionId: position.id,
+                              stringNumber,
+                            })
+                          }}
                         >
                           {note && <span className="note-value">{note.fret}</span>}
                         </button>
@@ -802,6 +1052,21 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
         <span className="score-page-footer-side is-right">{page.footerRight}</span>
       </footer>
 
+      <button
+        type="button"
+        className={`quick-fill-toggle${quickFillEnabled ? ' is-active' : ''}`}
+        onClick={toggleQuickFill}
+        aria-pressed={quickFillEnabled}
+        aria-label={quickFillEnabled
+          ? '关闭快捷填写。数字 0 到 6 填写音级，L 填写或取消单竖线，D 打开单节多音，上下方向键切换弦，删除键删除上一个节点。'
+          : '开启快捷填写。数字 0 到 6 填写音级，L 填写或取消单竖线，D 打开单节多音，上下方向键切换弦，删除键删除上一个节点。'}
+        title={quickFillEnabled
+          ? '快捷填写已开启：数字 0–6 填音级 · L 单竖线 · D 单节多音 · ↑↓ 换弦 · Delete 删上一格（点击关闭）'
+          : '快捷填写：数字 0–6 填音级 · L 单竖线 · D 单节多音 · ↑↓ 换弦 · Delete 删上一格'}
+      >
+        <Lightning size={22} weight={quickFillEnabled ? 'fill' : 'regular'} />
+      </button>
+
       <DialogShell
         open={selectedCell !== null}
         onOpenChange={(open) => !open && closeCellDialog()}
@@ -817,7 +1082,7 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
                   : `第 ${selectedCell.stringNumber} 弦`
               : '编辑音符'}
         description={multiNoteMode
-          ? '默认全选 X，点击音级修改，再次点击已选音级会还原为 X。'
+          ? '点击音级选择，再次点击可取消；X 按钮可一键全选闷音。'
           : selectedSymbol
             ? '当前选中这个符号，可在底部清除，也可以继续编辑当前位置。'
             : cellDialogTab === 'function'
@@ -881,9 +1146,19 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
                 <div className="multi-note-heading">
                   <div>
                     <strong>第 {selectedPositionIndex + 1} 列</strong>
-                    <span>默认 X · 点击音级修改，再次点击还原</span>
+                    <span>点击选择，再次点击取消 · X 一键全选</span>
                   </div>
-                  <button type="button" onClick={finishMultiNote}>完成</button>
+                  <div className="multi-note-actions">
+                    <button type="button" onClick={finishMultiNote}>完成</button>
+                    <button
+                      type="button"
+                      onClick={selectAllMultiNoteMuted}
+                      aria-label="全部选择 X 闷音"
+                      title="全部选择 X 闷音"
+                    >
+                      X
+                    </button>
+                  </div>
                 </div>
                 <div className="multi-note-grid">
                   {Array.from({ length: 6 }, (_, stringIndex) => {
@@ -891,7 +1166,7 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
                     const note = selectedPosition?.notes.find(
                       (candidate) => candidate.string === stringNumber,
                     )
-                    const selectedFret = note?.fret ?? 'X'
+                    const selectedFret = note?.fret ?? null
                     return (
                       <div className="multi-note-row" key={stringNumber}>
                         <span className="multi-note-string">{stringNumber} 弦</span>

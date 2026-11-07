@@ -25,6 +25,7 @@ export {
   FolderSimple,
   Guitar,
   Info,
+  Lightning,
   ListDashes,
   MusicNotes,
   Pause,
