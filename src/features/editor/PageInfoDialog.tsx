@@ -10,6 +10,17 @@ import {
   type ChordDisplayMode,
   type ScoreBookPage,
 } from '../../domain/score/score-document'
+import {
+  DEFAULT_THEME_COLOR,
+  THEME_COLOR_PRESETS,
+  normalizeThemeColor,
+} from '../../domain/score/theme-color'
+import {
+  formatPlaybackDuration,
+  playbackFieldsToSeconds,
+  splitPlaybackSeconds,
+  type PlaybackDurationFields as PlaybackFields,
+} from '../../domain/score/playback-duration'
 
 const CHORD_DISPLAY_OPTIONS: Array<{
   value: ChordDisplayMode
@@ -21,51 +32,27 @@ const CHORD_DISPLAY_OPTIONS: Array<{
   { value: 'letter', label: '单独字母', description: '只显示和弦名' },
 ]
 
-interface PlaybackFields {
-  hours: string
-  minutes: string
-  seconds: string
-}
-
-function splitPlaybackSeconds(totalSeconds: number): PlaybackFields {
-  const safeSeconds = Math.max(Math.round(totalSeconds), 1)
-  return {
-    hours: String(Math.floor(safeSeconds / 3600)),
-    minutes: String(Math.floor((safeSeconds % 3600) / 60)),
-    seconds: String(safeSeconds % 60),
-  }
-}
-
-function playbackFieldsToSeconds(fields: PlaybackFields) {
-  const hours = Math.min(Math.max(Number(fields.hours) || 0, 0), 23)
-  const minutes = Math.min(Math.max(Number(fields.minutes) || 0, 0), 59)
-  const seconds = Math.min(Math.max(Number(fields.seconds) || 0, 0), 59)
-  return Math.max(Math.floor(hours * 3600 + minutes * 60 + seconds), 1)
-}
-
-function formatPlaybackDuration(totalSeconds: number) {
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-
-  if (hours > 0) return `${hours} 时 ${minutes} 分 ${seconds} 秒`
-  if (minutes > 0) return `${minutes} 分 ${seconds} 秒`
-  return `${seconds} 秒`
-}
-
 interface PageInfoDialogProps {
   page: ScoreBookPage
   /** 谱本中的全部页面，用于按页配置自动播放时长。 */
   pages: ScoreBookPage[]
+  /** 当前谱本的主题色，用于初始化主题色选择。 */
+  themeColor: string
   onClose: () => void
 }
 
 /**
- * 编辑当前页面信息与每页自动播放默认时长的弹框。
+ * 编辑当前页面信息、每页自动播放默认时长与谱本主题色的弹框。
  *
- * @param props 当前页面、谱本页面列表与关闭回调。
+ * @param props 当前页面、谱本页面列表、谱本主题色与关闭回调。
  */
-export function PageInfoDialog({ page, pages, onClose }: PageInfoDialogProps) {
+export function PageInfoDialog({
+  page,
+  pages,
+  themeColor,
+  onClose,
+}: PageInfoDialogProps) {
+  const updateBookThemeColor = useScoreStore((state) => state.updateBookThemeColor)
   const updatePageInfo = useScoreStore((state) => state.updatePageInfo)
   const updatePagePlaybackSeconds = useScoreStore((state) => state.updatePagePlaybackSeconds)
   const [title, setTitle] = useState(page.title)
@@ -75,6 +62,7 @@ export function PageInfoDialog({ page, pages, onClose }: PageInfoDialogProps) {
   const [chordDisplay, setChordDisplay] = useState<ChordDisplayMode>(
     page.type === 'score' ? page.chordDisplay : DEFAULT_CHORD_DISPLAY,
   )
+  // 每页的播放时长独立编辑；切换页码只是切换编辑对象，保存时统一提交。
   const [playbackFieldsByPage, setPlaybackFieldsByPage] = useState<Record<string, PlaybackFields>>(
     () => Object.fromEntries(
       pages.map((item) => [item.id, splitPlaybackSeconds(item.playbackSeconds)]),
@@ -85,6 +73,13 @@ export function PageInfoDialog({ page, pages, onClose }: PageInfoDialogProps) {
     return index >= 0 ? index : 0
   })
   const playbackTabsRef = useRef<HTMLDivElement>(null)
+  // 主题色属于整本谱本，保存时和页面信息一起提交。
+  const [selectedThemeColor, setSelectedThemeColor] = useState(
+    () => normalizeThemeColor(themeColor),
+  )
+  const [themeColorDraft, setThemeColorDraft] = useState(
+    () => normalizeThemeColor(themeColor),
+  )
 
   useEffect(() => {
     const container = playbackTabsRef.current
@@ -111,7 +106,21 @@ export function PageInfoDialog({ page, pages, onClose }: PageInfoDialogProps) {
       && footerRight.trim() === page.footerRight
       && chordDisplay === page.chordDisplay
     : trimmedTitle === page.title
-  const unchanged = pageUnchanged && playbackUpdates.length === 0
+  const themeColorUnchanged = selectedThemeColor === normalizeThemeColor(themeColor)
+  const unchanged = pageUnchanged && playbackUpdates.length === 0 && themeColorUnchanged
+
+  const chooseThemeColor = (color: string) => {
+    const normalized = normalizeThemeColor(color)
+    setSelectedThemeColor(normalized)
+    setThemeColorDraft(normalized)
+  }
+
+  const updateThemeColorDraft = (value: string) => {
+    setThemeColorDraft(value)
+    if (/^#[0-9a-f]{6}$/i.test(value.trim())) {
+      setSelectedThemeColor(value.trim().toLowerCase())
+    }
+  }
 
   const updatePlaybackField = (field: keyof PlaybackFields, value: string) => {
     const limit = field === 'hours' ? 23 : 59
@@ -142,6 +151,7 @@ export function PageInfoDialog({ page, pages, onClose }: PageInfoDialogProps) {
     }
 
     if (playbackUpdates.length > 0) updatePagePlaybackSeconds(playbackUpdates)
+    if (!themeColorUnchanged) updateBookThemeColor(selectedThemeColor)
     onClose()
   }
 
@@ -153,8 +163,8 @@ export function PageInfoDialog({ page, pages, onClose }: PageInfoDialogProps) {
       }}
       title="编辑页面信息"
       description={page.type === 'score'
-        ? '修改页面标题、副标题、页脚、和弦显示与自动播放时长；目录与导出文件会同步使用新名称。'
-        : '修改页面标题与自动播放时长；目录与导出文件会同步使用新名称。'}
+        ? '修改页面标题、副标题、页脚、和弦显示与自动播放时长；主题色应用到整本谱本，不会影响谱面墨色。'
+        : '修改页面标题与自动播放时长；主题色应用到整本谱本，不会影响谱面墨色。'}
       footer={(
         <button
           className="primary-button page-info-save"
@@ -307,6 +317,51 @@ export function PageInfoDialog({ page, pages, onClose }: PageInfoDialogProps) {
           <p className="playback-duration-hint">
             该页停留 {formatPlaybackDuration(playbackPageSeconds)}（最少 1 秒）。
           </p>
+        </fieldset>
+
+        <fieldset className="theme-color-picker">
+          <legend>主题色</legend>
+          <p className="theme-color-hint">
+            整本谱本共用一个主题色，只影响按钮、选中态等界面元素，不影响谱面墨色。
+          </p>
+          <div className="theme-color-swatches" role="group" aria-label="建议主题色">
+            {THEME_COLOR_PRESETS.map((preset) => (
+              <button
+                key={preset.value}
+                type="button"
+                className={selectedThemeColor === preset.value ? 'is-selected' : ''}
+                style={{ background: preset.value }}
+                aria-label={preset.label}
+                aria-pressed={selectedThemeColor === preset.value}
+                title={`${preset.label} ${preset.value}`}
+                onClick={() => chooseThemeColor(preset.value)}
+              />
+            ))}
+          </div>
+          <div className="theme-color-custom">
+            <input
+              type="color"
+              value={selectedThemeColor}
+              onChange={(event) => chooseThemeColor(event.target.value)}
+              aria-label="自定义主题色"
+            />
+            <input
+              type="text"
+              value={themeColorDraft}
+              onChange={(event) => updateThemeColorDraft(event.target.value)}
+              maxLength={7}
+              spellCheck={false}
+              aria-label="主题色十六进制值"
+              aria-invalid={!/^#[0-9a-f]{6}$/i.test(themeColorDraft.trim())}
+            />
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => chooseThemeColor(DEFAULT_THEME_COLOR)}
+            >
+              恢复默认
+            </button>
+          </div>
         </fieldset>
       </form>
     </DialogShell>

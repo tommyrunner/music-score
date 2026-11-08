@@ -13,7 +13,7 @@ const CLOUD_SOURCE_KEY = 'stringroom:cloud-source'
 /**
  * 默认的云端谱本 ZIP 地址。
  */
-export const DEFAULT_CLOUD_SOURCE_URL =
+const DEFAULT_CLOUD_SOURCE_URL =
   'https://raw.githubusercontent.com/tommyrunner/music-score/master/library/music-list.zip'
 
 /**

@@ -9,7 +9,7 @@ import type { ScoreBook } from '../domain/score/score-document'
 /**
  * 谱本 IndexedDB 数据库。
  */
-export class ScoreDatabase extends Dexie {
+class ScoreDatabase extends Dexie {
   books!: Table<ScoreBook, string>
 
   constructor(databaseName = 'stringroom') {

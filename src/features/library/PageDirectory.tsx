@@ -18,7 +18,7 @@ export function PageDirectory({ book, onAddPage }: { book: ScoreBook; onAddPage:
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
-        <button className="editor-icon-button directory-trigger" aria-label="打开页面目录">
+        <button className="editor-icon-button" aria-label="打开页面目录">
           <ListDashes size={20} />
           <span>目录</span>
         </button>

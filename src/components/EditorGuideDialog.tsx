@@ -33,7 +33,7 @@ export function EditorGuideDialog({ open, onClose }: EditorGuideDialogProps) {
         <p className="editor-guide-lead">写谱时常用的操作都在这几处：</p>
         <ol>
           <li><strong>写音符</strong>：点击六线谱上的弦线，选择 X 或 0–6 品。</li>
-          <li><strong>快捷填写</strong>：点击右下角闪电图标开启后，数字 0–6 填写音级，L 填写或取消单竖线，D 打开当前列的单节多音，↑↓ 切换上下弦，Delete / 退格删除上一个节点；填完自动跳到下一个空白节点，点任意格子可以重新指定位置。快捷键固定为这些，不支持自定义。</li>
+          <li><strong>快捷填写</strong>：点击右下角闪电图标开启后，数字 0–6 填写音级，X 填写闷音，L 填写或取消单竖线，D 打开当前列的单节多音，↑↓ 切换上下弦，Delete / 退格删除上一个节点；填完自动跳到下一个空白节点，点任意格子可以重新指定位置。快捷键固定为这些，不支持自定义。</li>
           <li><strong>写和弦</strong>：点击每列上方的空白处，选择或输入和弦。</li>
           <li><strong>加符号</strong>：符号菜单里可以添加琶音、扫弦、延音线、击弦 H 和勾弦 P；点击已绘制符号可以清除。</li>
           <li><strong>编辑菜单</strong>：可以撤回、重做、选择节点、拖拽框选、复制音符和修改页面信息。</li>

@@ -14,12 +14,18 @@ import {
   PAPER_WIDTH,
   readPixelValue,
 } from '../../components/paper-layout'
+import { useThemeColor } from '../../app/use-theme-color'
 import {
   DEFAULT_PLAYBACK_SECONDS,
-  MAX_PLAYBACK_SECONDS,
   type ScoreBook,
   type ScoreBookPage,
 } from '../../domain/score/score-document'
+import {
+  formatPlaybackDuration,
+  playbackFieldsToSeconds,
+  splitPlaybackSeconds,
+  type PlaybackDurationFields,
+} from '../../domain/score/playback-duration'
 
 /** 停止操作后隐藏底部操作栏的时长。 */
 const CONTROLS_HIDE_DELAY = 3000
@@ -51,46 +57,11 @@ interface PageTransition {
   direction: 'next' | 'prev'
 }
 
-interface DurationFields {
-  hours: string
-  minutes: string
-  seconds: string
-}
-
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
 
-function durationFromFields(fields: DurationFields) {
-  const hours = clamp(Number(fields.hours) || 0, 0, 23)
-  const minutes = clamp(Number(fields.minutes) || 0, 0, 59)
-  const seconds = clamp(Number(fields.seconds) || 0, 0, 59)
-  return Math.floor(hours * 3600 + minutes * 60 + seconds)
-}
-
-function formatDuration(totalSeconds: number) {
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-
-  if (hours > 0) return `${hours} 时 ${minutes} 分 ${seconds} 秒`
-  if (minutes > 0) return `${minutes} 分 ${seconds} 秒`
-  return `${seconds} 秒`
-}
-
-/**
- * 把谱本配置的默认播放时长拆成时、分、秒输入框。
- *
- * @param totalSeconds 默认每页停留时长（秒）。
- */
-function splitPlaybackSeconds(totalSeconds: number): DurationFields {
-  const safeSeconds = clamp(Math.round(totalSeconds), 1, MAX_PLAYBACK_SECONDS)
-  return {
-    hours: String(Math.floor(safeSeconds / 3600)),
-    minutes: String(Math.floor((safeSeconds % 3600) / 60)),
-    seconds: String(safeSeconds % 60),
-  }
-}
+type DurationFields = PlaybackDurationFields
 
 /**
  * 尝试把屏幕方向锁定为竖屏。
@@ -119,6 +90,7 @@ function unlockOrientation() {
 function ReaderPage({
   page,
   pageNumber,
+  bookTitle,
   zoom,
   pan,
   initialLayout,
@@ -126,6 +98,7 @@ function ReaderPage({
 }: {
   page: ScoreBookPage
   pageNumber: number
+  bookTitle: string
   zoom: number
   pan: { x: number; y: number }
   initialLayout?: PageLayout
@@ -206,7 +179,7 @@ function ReaderPage({
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${combinedScale || 1})`,
             }}
           >
-            <PaperPage page={page} pageNumber={pageNumber} />
+            <PaperPage page={page} pageNumber={pageNumber} bookTitle={bookTitle} />
           </div>
         </div>
       </div>
@@ -230,6 +203,9 @@ export function ReaderOverlay({
   book: ScoreBook
   onClose: () => void
 }) {
+  // 从首页直接进入阅读时，编辑页可能没有激活谱本，这里单独应用阅读谱本的主题色。
+  useThemeColor(book.themeColor)
+
   const rootRef = useRef<HTMLDivElement>(null)
   const gestureRef = useRef<HTMLDivElement>(null)
   const hideTimerRef = useRef<number | null>(null)
@@ -256,6 +232,7 @@ export function ReaderOverlay({
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [playbackPanelOpen, setPlaybackPanelOpen] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
+  // 播放面板里每页的时长各自独立；这里的修改只影响本次阅读，不会写回谱本。
   const [playbackFieldsByPage, setPlaybackFieldsByPage] = useState<Record<string, DurationFields>>(
     () => Object.fromEntries(
       book.pages.map((page) => [page.id, splitPlaybackSeconds(page.playbackSeconds)]),
@@ -279,7 +256,7 @@ export function ReaderOverlay({
     )
   )
   const secondsForPage = (pageId: string) => (
-    Math.max(durationFromFields(fieldsForPage(pageId)), 1)
+    playbackFieldsToSeconds(fieldsForPage(pageId))
   )
   const currentPageDuration = currentPage
     ? secondsForPage(currentPage.id)
@@ -783,6 +760,7 @@ export function ReaderOverlay({
                     key={`out-${pages[transition.from].id}`}
                     page={pages[transition.from]}
                     pageNumber={transition.from + 1}
+                    bookTitle={book.title}
                     zoom={1}
                     pan={{ x: 0, y: 0 }}
                     initialLayout={layoutCache[pages[transition.from].id]}
@@ -794,6 +772,7 @@ export function ReaderOverlay({
                     key={`in-${currentPage.id}`}
                     page={currentPage}
                     pageNumber={pageIndex + 1}
+                    bookTitle={book.title}
                     zoom={zoom}
                     pan={pan}
                     initialLayout={layoutCache[currentPage.id]}
@@ -807,6 +786,7 @@ export function ReaderOverlay({
                   key={`page-${currentPage.id}`}
                   page={currentPage}
                   pageNumber={pageIndex + 1}
+                  bookTitle={book.title}
                   zoom={zoom}
                   pan={pan}
                   initialLayout={layoutCache[currentPage.id]}
@@ -840,7 +820,7 @@ export function ReaderOverlay({
             aria-expanded={playbackPanelOpen}
             aria-pressed={isPlaying}
             title={isPlaying
-              ? `暂停自动翻页（当前页 ${formatDuration(currentPageDuration)}）`
+              ? `暂停自动翻页（当前页 ${formatPlaybackDuration(currentPageDuration)}）`
               : '自动翻页'}
           >
             {isPlaying
@@ -973,7 +953,7 @@ export function ReaderOverlay({
                 ? '当前谱本只有一页，无需自动翻页。'
                 : isLast
                   ? '当前已经是最后一页，请先翻到前面的页面再开始播放。'
-                  : `第 ${settingsPageIndex + 1} 页停留 ${formatDuration(settingsDuration)}，每页按各自配置自动翻页；此处修改仅本次播放生效。`}
+                  : `第 ${settingsPageIndex + 1} 页停留 ${formatPlaybackDuration(settingsDuration)}，每页按各自配置自动翻页；此处修改仅本次播放生效。`}
             </p>
 
             <div className="reader-play-footer">

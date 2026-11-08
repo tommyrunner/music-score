@@ -1,10 +1,11 @@
 .preview-paper { width: 794px; min-height: 1123px; display: flex; flex-direction: column; padding: 76px 72px 34px; color: #20251f; border-radius: 2px; background: #faf8ef; box-shadow: 0 20px 80px rgba(0, 0, 0, .28), 0 1px 2px rgba(0, 0, 0, .35); }
-.preview-paper-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding-bottom: 20px; border-bottom: 2px solid #242a24; }
-.preview-paper-heading div { display: grid; }
-.preview-paper-heading span { color: #a34331; font: 700 8px ui-monospace, monospace; letter-spacing: .18em; }
-.preview-paper-heading h3 { margin: 4px 0 0; font-family: "Iowan Old Style", "Songti SC", serif; font-size: 44px; font-weight: 500; }
-.preview-paper-subtitle { max-width: 560px; margin: 6px 0 0; color: #7d817c; font-size: 10px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
-.preview-paper-heading small { color: #7d817c; font: 11px ui-monospace, monospace; }
+.preview-paper-heading { position: relative; display: grid; justify-items: center; gap: 5px; padding-bottom: 20px; text-align: center; border-bottom: 2px solid #242a24; }
+.preview-paper-eyebrow { color: #a34331; font: 700 8px ui-monospace, monospace; letter-spacing: .18em; }
+.preview-paper-heading h3 { max-width: 100%; margin: 0; font-family: "Iowan Old Style", "Songti SC", serif; font-size: 44px; font-weight: 500; line-height: 1.1; overflow-wrap: anywhere; }
+.preview-paper-meta { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 10px; }
+.preview-paper-page { display: inline-block; padding: 2px 9px; color: #7d817c; border: 1px solid #c9cdc6; border-radius: 999px; font: 600 8px ui-monospace, monospace; letter-spacing: .08em; }
+.preview-paper-subtitle { max-width: 560px; margin: 0; color: #7d817c; font-size: 10px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.preview-paper-number { position: absolute; top: 0; right: 0; color: #7d817c; font: 11px ui-monospace, monospace; }
 .preview-measures { display: grid; align-content: start; gap: 38px; margin-top: 34px; }
 .preview-measure { position: relative; min-width: 0; }
 .preview-chords { height: 26px; display: grid; align-items: center; padding-inline: 2px; font-family: "Iowan Old Style", serif; font-size: 12px; font-weight: 700; text-align: center; }

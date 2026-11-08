@@ -391,7 +391,7 @@ export function WorkspaceToolbar({
       <Popover.Root>
         <Popover.Trigger asChild>
           <button
-            className="text-button file-menu-button"
+            className="text-button"
             aria-label={activeBook ? '文件操作' : '数据操作'}
           >
             <FolderSimple size={18} />
@@ -495,6 +495,7 @@ export function WorkspaceToolbar({
           key={activePage.id}
           page={activePage}
           pages={activeBook.pages}
+          themeColor={activeBook.themeColor}
           onClose={() => setPageInfoOpen(false)}
         />
       )}

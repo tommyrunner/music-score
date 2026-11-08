@@ -80,7 +80,10 @@ export function ChordDialog({ open, onOpenChange, onChoose }: ChordDialogProps) 
                 <small>「{trimmedCustomChord}」会显示对应的指法样图</small>
               </>
             ) : (
-              <small>暂无「{trimmedCustomChord}」的指法样图，谱面将只显示和弦名。</small>
+              <div className="chord-custom-letter">
+                <strong>{trimmedCustomChord}</strong>
+                <small>暂无指法样图，谱面只显示这个和弦名。</small>
+              </div>
             )}
           </div>
         )}

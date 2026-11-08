@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { useScoreStore } from './app/use-score-store'
+import { useThemeColor } from './app/use-theme-color'
 import { EditorGuideDialog } from './components/EditorGuideDialog'
 import { hasSeenEditorGuide, markEditorGuideSeen } from './components/editor-guide-storage'
 import { ArrowLeft, Guitar, Plus } from './components/icons'
@@ -9,6 +10,7 @@ import { ScoreEditor } from './features/editor/ScoreEditor'
 import { AddPageDialog, CreateBookDialog } from './features/library/BookDialogs'
 import { HomeLibrary } from './features/library/HomeLibrary'
 import { PageDirectory } from './features/library/PageDirectory'
+import { DEFAULT_THEME_COLOR } from './domain/score/theme-color'
 import { ReaderOverlay } from './features/reader/ReaderOverlay'
 import { WorkspaceToolbar } from './features/workspace/WorkspaceToolbar'
 
@@ -39,6 +41,9 @@ export function App() {
 
   const activeBook = books.find((book) => book.id === activeBookId)
   const activePage = activeBook?.pages.find((page) => page.id === activePageId)
+
+  // 首页使用项目默认主题色，进入谱本后切换成该谱本的主题色。
+  useThemeColor(activeBook?.themeColor ?? DEFAULT_THEME_COLOR)
   const dismissEditorGuide = () => {
     markEditorGuideSeen()
     setShowEditorGuide(false)
@@ -108,9 +113,9 @@ export function App() {
             </button>
           </section>
         ) : activePage.type === 'score' ? (
-          <ScoreEditor key={activePage.id} page={activePage} />
+          <ScoreEditor key={activePage.id} page={activePage} bookTitle={activeBook.title} />
         ) : (
-          <ImagePageView page={activePage} />
+          <ImagePageView page={activePage} bookTitle={activeBook.title} />
         )}
       </main>
 

@@ -5,9 +5,17 @@
 import { z } from 'zod'
 
 import { createId } from './id'
+import { DEFAULT_THEME_COLOR } from './theme-color'
 
 const MAX_TITLE_LENGTH = 80
-const DEFAULT_POSITION_COUNT = 24
+
+/**
+ * 每个小节的默认列数。
+ *
+ * 48 列可以让 900px 宽、32px 内边距的编辑页每列约 17px，
+ * 相邻音符之间保留约 4px 空隙；解析旧数据时不足 48 列会自动补齐。
+ */
+const DEFAULT_POSITION_COUNT = 48
 const DEFAULT_MEASURE_COUNT = 8
 
 /**
@@ -29,15 +37,15 @@ export const PAGE_FOOTER_RIGHT_MAX_LENGTH = 50
 /**
  * 六线谱页面默认副标题。
  */
-export const DEFAULT_SCORE_SUBTITLE = '标准调弦 E A D G B E'
+const DEFAULT_SCORE_SUBTITLE = '标准调弦 E A D G B E'
 /**
  * 页面默认左下角文字。
  */
-export const DEFAULT_PAGE_FOOTER_LEFT = '弦间'
+const DEFAULT_PAGE_FOOTER_LEFT = '弦间'
 /**
  * 页面默认右下角文字。
  */
-export const DEFAULT_PAGE_FOOTER_RIGHT = ''
+const DEFAULT_PAGE_FOOTER_RIGHT = ''
 /**
  * 自动播放默认每页停留时长（秒）。
  */
@@ -118,7 +126,7 @@ const positionSchema = z
 const measureSchema = z
   .object({
     id: idSchema,
-    positions: z.array(positionSchema).min(1).max(32).transform((positions) =>
+    positions: z.array(positionSchema).min(1).max(64).transform((positions) =>
       positions.length >= DEFAULT_POSITION_COUNT
         ? positions
         : [
@@ -202,6 +210,13 @@ export const scoreBookSchema = z
     schemaVersion: z.literal(1),
     id: idSchema,
     title: titleSchema,
+    // 谱本主题色，只影响界面强调色，不参与谱面墨色。
+    themeColor: z
+      .string()
+      .trim()
+      .regex(/^#[0-9a-f]{6}$/i, '主题色需为 #rrggbb 格式')
+      .default(DEFAULT_THEME_COLOR)
+      .transform((color) => color.toLowerCase()),
     instrument: z
       .object({
         type: z.literal('guitar'),

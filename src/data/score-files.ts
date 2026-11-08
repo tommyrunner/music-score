@@ -20,7 +20,7 @@ export type FileProgress = (progress: number, detail: string) => void
 /**
  * 单个文件导入失败的信息。
  */
-export interface ImportError {
+interface ImportError {
   fileName: string
   message: string
 }
@@ -99,7 +99,7 @@ export function normalizeImageUrl(input: string): string {
  * @param book 谱本数据。
  * @returns 适合保存到本地文件系统的文件名。
  */
-export function scoreBookFileName(book: ScoreBook): string {
+function scoreBookFileName(book: ScoreBook): string {
   return `${safeFileTitle(book.title) || '未命名谱本'}.stringroom.json`
 }
 
@@ -110,7 +110,7 @@ export function scoreBookFileName(book: ScoreBook): string {
  * @param page 页面数据。
  * @returns 包含谱本名和页面名的 JSON 文件名。
  */
-export function scorePageFileName(book: ScoreBook, page: ScoreBookPage): string {
+function scorePageFileName(book: ScoreBook, page: ScoreBookPage): string {
   return `${safeFileTitle(book.title)}-${safeFileTitle(page.title)}.stringroom.json`
 }
 
@@ -121,10 +121,11 @@ export function scorePageFileName(book: ScoreBook, page: ScoreBookPage): string 
  * @param page 要导出的页面。
  * @returns 可以重新导入的单页谱本文档。
  */
-export function scorePageAsBook(book: ScoreBook, page: ScoreBookPage): ScoreBook {
+function scorePageAsBook(book: ScoreBook, page: ScoreBookPage): ScoreBook {
   const pageBook = createScoreBook(`${book.title} · ${page.title}`.slice(0, 80))
   return {
     ...pageBook,
+    themeColor: book.themeColor,
     pages: [page],
   }
 }
@@ -272,7 +273,7 @@ export function downloadScorePage(book: ScoreBook, page: ScoreBookPage): void {
  * 生成批量导出 ZIP 的文件名与 JSON 内容映射。
  * 重名谱本会自动追加序号。
  */
-export function scoreBookArchiveEntries(books: ScoreBook[]): Record<string, string> {
+function scoreBookArchiveEntries(books: ScoreBook[]): Record<string, string> {
   const entries: Record<string, string> = {}
 
   for (const book of books) {

@@ -71,16 +71,26 @@ function PaperMeasure({
   )
 }
 
-function ScorePaper({ page, pageNumber }: { page: ScorePage; pageNumber: number }) {
+function ScorePaper({
+  page,
+  pageNumber,
+  bookTitle,
+}: {
+  page: ScorePage
+  pageNumber: number
+  bookTitle: string
+}) {
   return (
     <article className="preview-paper" aria-label={`${page.title}六线谱纸张`}>
+      {/* 纸张页头：谱本名为主标题，页名作为副标签，页码固定在右上角。 */}
       <header className="preview-paper-heading">
-        <div>
-          <span>GUITAR TAB</span>
-          <h3>{page.title}</h3>
+        <span className="preview-paper-eyebrow">GUITAR TAB</span>
+        <h3>{bookTitle}</h3>
+        <div className="preview-paper-meta">
+          <span className="preview-paper-page">{page.title}</span>
           {page.subtitle && <p className="preview-paper-subtitle">{page.subtitle}</p>}
         </div>
-        <small>{String(pageNumber).padStart(2, '0')}</small>
+        <small className="preview-paper-number">{String(pageNumber).padStart(2, '0')}</small>
       </header>
       <div className="preview-measures">
         {page.measures.map((measure) => (
@@ -99,12 +109,24 @@ function ScorePaper({ page, pageNumber }: { page: ScorePage; pageNumber: number 
   )
 }
 
-function ImagePaper({ page, pageNumber }: { page: ImagePage; pageNumber: number }) {
+function ImagePaper({
+  page,
+  pageNumber,
+  bookTitle,
+}: {
+  page: ImagePage
+  pageNumber: number
+  bookTitle: string
+}) {
   return (
-    <article className="preview-paper preview-image-paper">
+    <article className="preview-paper">
       <header className="preview-paper-heading">
-        <div><span>REFERENCE</span><h3>{page.title}</h3></div>
-        <small>{String(pageNumber).padStart(2, '0')}</small>
+        <span className="preview-paper-eyebrow">REFERENCE</span>
+        <h3>{bookTitle}</h3>
+        <div className="preview-paper-meta">
+          <span className="preview-paper-page">{page.title}</span>
+        </div>
+        <small className="preview-paper-number">{String(pageNumber).padStart(2, '0')}</small>
       </header>
       <div className="preview-image-frame">
         <img src={page.image.url} alt={page.title} draggable={false} />
@@ -122,8 +144,16 @@ function ImagePaper({ page, pageNumber }: { page: ImagePage; pageNumber: number 
  * @param props.page 当前页面。
  * @param props.pageNumber 从 1 开始的页码。
  */
-export function PaperPage({ page, pageNumber }: { page: ScoreBookPage; pageNumber: number }) {
+export function PaperPage({
+  page,
+  pageNumber,
+  bookTitle,
+}: {
+  page: ScoreBookPage
+  pageNumber: number
+  bookTitle: string
+}) {
   return page.type === 'score'
-    ? <ScorePaper page={page} pageNumber={pageNumber} />
-    : <ImagePaper page={page} pageNumber={pageNumber} />
+    ? <ScorePaper page={page} pageNumber={pageNumber} bookTitle={bookTitle} />
+    : <ImagePaper page={page} pageNumber={pageNumber} bookTitle={bookTitle} />
 }

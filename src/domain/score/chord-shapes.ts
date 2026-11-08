@@ -8,7 +8,7 @@
 /**
  * 横按信息。
  */
-export interface ChordBarre {
+interface ChordBarre {
   /** 横按所在品位。 */
   fret: number
   /** 起始弦索引，0 表示 6 弦。 */
@@ -30,7 +30,7 @@ export interface ChordShape {
 /**
  * 内置和弦指法。
  */
-export const CHORD_SHAPES: Record<string, ChordShape> = {
+const CHORD_SHAPES: Record<string, ChordShape> = {
   C: { frets: [-1, 3, 2, 0, 1, 0] },
   D: { frets: [-1, -1, 0, 2, 3, 2] },
   E: { frets: [0, 2, 2, 1, 0, 0] },
@@ -56,27 +56,26 @@ export const CHORD_SHAPES: Record<string, ChordShape> = {
   B7: { frets: [-1, 2, 1, 2, 0, 2] },
 }
 
-const chordShapeLookup = new Map(
-  Object.entries(CHORD_SHAPES).map(([name, shape]) => [name.toLowerCase(), shape]),
-)
-
 /**
  * 规范化和弦名称。
  *
- * 去除首尾空白、统一升降号写法，并去掉转位斜杠（如 C/G 取 C）。
+ * 去除首尾空白并统一升降号写法；其余字符（转位斜杠、大小写等）保持原样，
+ * 以便调用方区分标准写法和自定义写法。
  *
  * @param chord 原始和弦名称。
  */
-export function normalizeChordName(chord: string) {
-  const [base = ''] = chord.trim().replaceAll('♯', '#').replaceAll('♭', 'b').split('/')
-  return base.trim()
+function normalizeChordName(chord: string) {
+  return chord.trim().replaceAll('♯', '#').replaceAll('♭', 'b')
 }
 
 /**
  * 查找和弦对应的指法样图。
  *
+ * 只有与内置指法表标准写法完全一致的和弦才返回样图；
+ * 转位斜杠和弦、大小写变体等自定义写法一律返回 null，由调用方只显示字母。
+ *
  * @param chord 和弦名称。
- * @returns 指法数据，未收录时返回 null。
+ * @returns 指法数据，未收录或自定义写法时返回 null。
  */
 export function findChordShape(chord: string | null | undefined): ChordShape | null {
   if (!chord) return null
@@ -84,7 +83,7 @@ export function findChordShape(chord: string | null | undefined): ChordShape | n
   const name = normalizeChordName(chord)
   if (!name) return null
 
-  return CHORD_SHAPES[name] ?? chordShapeLookup.get(name.toLowerCase()) ?? null
+  return CHORD_SHAPES[name] ?? null
 }
 
 /**

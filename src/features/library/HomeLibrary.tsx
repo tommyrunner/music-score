@@ -109,6 +109,12 @@ export function HomeLibrary({ books, onCreateBook }: HomeLibraryProps) {
                   className={`shelf-book ${index === 0 ? 'is-featured' : ''}`}
                   key={book.id}
                 >
+                  <span
+                    className="shelf-book-theme"
+                    style={{ background: book.themeColor }}
+                    title={`主题色 ${book.themeColor}`}
+                    aria-hidden="true"
+                  />
                   <button
                     className="shelf-book-open"
                     onClick={() => selectBook(book.id)}

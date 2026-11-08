@@ -69,6 +69,8 @@
 .multi-note-heading button { flex: none; min-height: 30px; padding: 0 12px; color: var(--ink); border: 1px solid #c7ccc6; border-radius: 6px; background: #fff; cursor: pointer; font-size: 10px; }
 .multi-note-heading button:hover { color: #fff; border-color: var(--accent-dark); background: var(--accent); }
 .multi-note-actions { flex: none; display: flex; gap: 6px; }
+.multi-note-heading button:disabled { opacity: .45; cursor: not-allowed; }
+.cell-dialog-footer .multi-note-finish { grid-column: 2; justify-self: center; min-height: 34px; padding: 0 18px; font-size: 11px; }
 .multi-note-grid { display: grid; gap: 5px; }
 .multi-note-row { display: grid; grid-template-columns: 30px repeat(8, minmax(0, 1fr)); align-items: center; gap: 4px; }
 .multi-note-string { color: var(--ink-soft); font: 600 10px ui-monospace, monospace; }
@@ -97,6 +99,8 @@
 .chord-custom-preview { min-height: 56px; display: flex; align-items: center; gap: 10px; margin-top: 3px; padding: 8px 10px; border: 1px dashed #c3c9c2; border-radius: 10px; background: rgba(255, 255, 255, .55); }
 .chord-custom-preview .chord-diagram { width: 40px; }
 .chord-custom-preview small { color: var(--ink-faint); font-size: 10px; line-height: 1.5; }
+.chord-custom-letter { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.chord-custom-letter strong { flex: none; font-family: "Iowan Old Style", "Songti SC", serif; font-size: 18px; font-weight: 700; }
 .chord-custom .clear-chord { margin-top: 7px; color: var(--accent-dark); border: 0; background: transparent; cursor: pointer; }
 .chord-display-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin: 3px 0 0; padding: 0; border: 0; }
 .chord-display-picker legend { margin-bottom: 9px; padding: 0; font-size: 12px; font-weight: 650; }
@@ -120,7 +124,6 @@
 .playback-duration-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .playback-duration-fields label { display: grid; gap: 5px; color: var(--ink-soft); font-size: 10px; }
 .playback-duration-fields input { height: 40px; text-align: center; font: 600 15px ui-monospace, monospace; }
-.playback-duration-error { margin: 0; color: #a13f2e; font-size: 10px; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 @media (max-width: 480px) {
@@ -133,3 +136,17 @@
   .cell-option-row { gap: 10px; }
   .cell-option-actions button { min-width: 40px; padding-inline: 6px; }
 }
+
+.theme-color-picker { display: grid; gap: 10px; margin: 4px 0 0; padding: 0; border: 0; }
+.theme-color-picker legend { margin-bottom: 7px; padding: 0; font-size: 12px; font-weight: 650; }
+.theme-color-hint { margin: 0; color: var(--ink-faint); font-size: 9px; line-height: 1.5; }
+.theme-color-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.theme-color-swatches button { width: 30px; height: 30px; padding: 0; border: 1px solid transparent; border-radius: 50%; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35); transition: transform 120ms ease, box-shadow 120ms ease; }
+.theme-color-swatches button:hover { transform: translateY(-1px); }
+.theme-color-swatches button.is-selected { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink); }
+.theme-color-swatches button:focus-visible { outline: 2px solid var(--accent-dark); outline-offset: 3px; }
+.theme-color-custom { display: flex; align-items: center; gap: 8px; }
+.theme-color-custom input[type="color"] { width: 42px; height: 34px; padding: 2px; border: 1px solid #c7ccc6; border-radius: 8px; background: #fff; cursor: pointer; }
+.theme-color-custom input[type="text"] { width: 104px; height: 34px; padding: 0 9px; font: 600 11px ui-monospace, monospace; text-transform: uppercase; }
+.theme-color-custom input[aria-invalid="true"] { border-color: #a13f2e; }
+.theme-color-custom .text-button { margin-left: auto; }

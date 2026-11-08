@@ -5,17 +5,18 @@ import type { ImagePage } from '../../domain/score/score-document'
 /**
  * 图片参考页面视图。
  *
- * @param props 当前图片页面。
+ * @param props 当前图片页面与所属谱本名称。
  */
-export function ImagePageView({ page }: { page: ImagePage }) {
+export function ImagePageView({ page, bookTitle }: { page: ImagePage; bookTitle: string }) {
   return (
     <section className="image-page" aria-label={`${page.title}图片页面`}>
       <header>
-        <div>
-          <p>图片参考</p>
-          <h1>{page.title}</h1>
+        <p>图片参考</p>
+        <h1>{bookTitle}</h1>
+        <div className="image-page-meta">
+          <span className="image-page-page">{page.title}</span>
         </div>
-        <span><FileImage size={16} /> 图片 URL 引用</span>
+        <span className="image-page-source"><FileImage size={16} /> 图片 URL 引用</span>
       </header>
       <div className="image-page-paper">
         <span aria-hidden="true">{page.title}</span>

@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   margin: 0 auto;
-  padding: 68px 64px 40px;
+  padding: 32px;
   border: 1px solid #d4d5cf;
   border-radius: 2px;
   background:
@@ -13,11 +13,12 @@
   box-shadow: 0 28px 80px rgba(30, 37, 32, .15), 9px 0 0 #e0e1da;
 }
 
-.score-intro { padding-bottom: 18px; border-bottom: 2px solid var(--ink); }
-.score-intro p { margin: 0 0 8px; color: var(--accent-dark); font: 700 9px ui-monospace, monospace; letter-spacing: .16em; }
-.score-intro h1 { margin: 0; font-family: "Iowan Old Style", "Songti SC", serif; font-size: clamp(38px, 5vw, 54px); font-weight: 500; line-height: 1.08; letter-spacing: 0; }
-.score-intro span { display: block; margin-top: 9px; color: var(--ink-soft); font-size: 10px; }
-.score-page-subtitle { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+.score-intro { display: grid; justify-items: center; gap: 7px; padding-bottom: 18px; text-align: center; border-bottom: 2px solid var(--ink); }
+.score-intro p { margin: 0; color: var(--accent-dark); font: 700 9px ui-monospace, monospace; letter-spacing: .16em; }
+.score-intro h1 { max-width: 100%; margin: 0; font-family: "Iowan Old Style", "Songti SC", serif; font-size: clamp(34px, 4.4vw, 50px); font-weight: 500; line-height: 1.08; letter-spacing: 0; overflow-wrap: anywhere; }
+.score-intro-meta { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 10px; margin-top: 1px; }
+.score-intro-page { display: inline-block; padding: 2px 9px; color: var(--ink-soft); border: 1px solid color-mix(in srgb, var(--ink-faint) 42%, transparent); border-radius: 999px; font: 600 9px ui-monospace, monospace; letter-spacing: .08em; }
+.score-page-subtitle { justify-self: stretch; max-width: 100%; margin: 0; color: var(--ink-soft); font-size: 10px; line-height: 1.6; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .score-systems {
   position: relative;
@@ -52,7 +53,7 @@
 .chord-row button:hover .chord-hint,
 .chord-row button:focus-visible .chord-hint { opacity: 1; transform: translate(-50%, 0); }
 
-.staff-wrap { position: relative; height: 112px; }
+.staff-wrap { position: relative; height: 96px; }
 .staff-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .staff-lines line { stroke: #505752; stroke-width: 1.2; vector-effect: non-scaling-stroke; }
 .staff-lines .edge-line { stroke-width: 1.8; }
@@ -67,7 +68,7 @@
 .note-grid button::after { content: ''; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); opacity: 0; transform: translate(-50%, -50%) scale(.6); transition: opacity 120ms ease, transform 120ms ease; }
 .note-grid button:hover::after,
 .note-grid button:focus-visible::after { opacity: .72; transform: translate(-50%, -50%) scale(1); }
-.note-value { min-width: 15px; height: 17px; display: inline-grid; place-items: center; padding: 0 2px; border-radius: 2px; background: var(--paper); }
+.note-value { min-width: 13px; height: 15px; display: inline-grid; place-items: center; padding: 0 2px; border-radius: 2px; background: var(--paper); }
 .note-grid button.has-note::after { display: none; }
 .note-grid button.is-symbol-start { background: color-mix(in srgb, var(--accent) 10%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 62%, transparent); border-radius: 3px; }
 .note-grid button.is-selected-node { background: color-mix(in srgb, var(--accent) 12%, transparent); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 72%, transparent); border-radius: 3px; }
@@ -132,10 +133,12 @@
 .score-page-footer-side.is-right { text-align: right; }
 
 .image-page { max-width: 920px; margin: 0 auto; }
-.image-page > header { margin: 6px 0 20px; }
-.image-page > header p { margin: 0 0 6px; color: var(--accent-dark); font-size: 10px; font-weight: 700; letter-spacing: .08em; }
-.image-page > header h1 { margin: 0; font-family: "Iowan Old Style", "Songti SC", serif; font-size: clamp(34px, 4vw, 48px); font-weight: 500; }
-.image-page > header > span { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; color: var(--ink-soft); font-size: 10px; }
+.image-page > header { position: relative; display: grid; justify-items: center; gap: 7px; margin: 6px 0 20px; text-align: center; }
+.image-page > header p { margin: 0; color: var(--accent-dark); font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+.image-page > header h1 { max-width: 100%; margin: 0; font-family: "Iowan Old Style", "Songti SC", serif; font-size: clamp(34px, 4vw, 48px); font-weight: 500; overflow-wrap: anywhere; }
+.image-page-meta { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 10px; }
+.image-page-page { display: inline-block; padding: 2px 9px; color: var(--ink-soft); border: 1px solid color-mix(in srgb, var(--ink-faint) 42%, transparent); border-radius: 999px; font: 600 9px ui-monospace, monospace; letter-spacing: .08em; }
+.image-page-source { position: absolute; top: 0; right: 0; display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); font-size: 10px; }
 .image-page-paper { position: relative; min-height: 1120px; display: grid; place-items: center; padding: clamp(28px, 6vw, 68px); border: 1px solid #d4d5cf; border-radius: 2px; background: var(--paper); box-shadow: 0 28px 80px rgba(30, 37, 32, .15), 9px 0 0 #e0e1da; overflow: hidden; }
 .image-page-paper::before { content: ''; position: absolute; left: 22px; top: 0; bottom: 0; width: 1px; background: rgba(184, 69, 45, .22); }
 .image-page-paper > span { display: none; }
@@ -146,9 +149,9 @@
   .score-intro { padding-bottom: 14px; }
   .score-intro h1 { font-size: 34px; }
   .score-systems { gap: 24px; margin-top: 18px; }
-  .staff-wrap { height: 126px; }
+  .staff-wrap { height: 112px; }
   .note-grid button { margin-inline: 3%; font-size: 11px; }
-  .note-value { min-width: 11px; height: 15px; padding-inline: 1px; }
+  .note-value { min-width: 11px; height: 14px; padding-inline: 1px; }
   .chord-row.is-both { min-height: 29px; }
   .chord-row.is-diagram { min-height: 30px; }
   .chord-row .chord-mark-name { font-size: 10px; }
@@ -159,5 +162,6 @@
   .add-lyric-line { opacity: .72; }
   .score-page-footer { align-items: flex-start; margin-top: 36px; }
   .image-page > header { margin-inline: 6px; }
+  .image-page-source { position: static; }
   .image-page-paper { min-height: calc((100vw - 16px) * 1.414); padding: 26px; box-shadow: 4px 0 0 #e0e1da; }
 }

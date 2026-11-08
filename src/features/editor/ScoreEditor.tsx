@@ -42,22 +42,50 @@ type TwoPointSymbolType = Extract<ScoreSymbolType, 'tie' | 'hammer-on' | 'pull-o
 let quickFillPreferred = false
 
 /**
- * 找到页面中按视觉顺序排列的第一个空白节点。
+ * 找到开启快捷填写时的起始节点。
+ *
+ * 优先从最后一个已填写节点之后继续找第一个空白节点（顺序填写的自然续写位置）；
+ * 如果后面都填满了，再回到开头找空位；完全没有音符时从第一个节点开始。
  *
  * @param page 当前六线谱页面。
  */
-function findFirstEmptyCell(page: ScorePage): SelectedCell | null {
+function findQuickStartCell(page: ScorePage): SelectedCell | null {
+  const nodes: Array<{
+    measureId: string
+    positionId: string
+    stringNumber: number
+    filled: boolean
+  }> = []
+
   for (const measure of page.measures) {
     for (let stringNumber = 1; stringNumber <= 6; stringNumber += 1) {
       for (const position of measure.positions) {
-        if (!position.notes.some((note) => note.string === stringNumber)) {
-          return { measureId: measure.id, positionId: position.id, stringNumber }
-        }
+        nodes.push({
+          measureId: measure.id,
+          positionId: position.id,
+          stringNumber,
+          filled: position.notes.some((note) => note.string === stringNumber),
+        })
       }
     }
   }
 
-  return null
+  if (nodes.length === 0) return null
+
+  let lastFilledIndex = -1
+  nodes.forEach((node, index) => {
+    if (node.filled) lastFilledIndex = index
+  })
+
+  const startIndex = lastFilledIndex >= 0 ? lastFilledIndex + 1 : 0
+  const ordered = [...nodes.slice(startIndex), ...nodes.slice(0, startIndex)]
+  const next = ordered.find((node) => !node.filled) ?? nodes[0]
+
+  return {
+    measureId: next.measureId,
+    positionId: next.positionId,
+    stringNumber: next.stringNumber,
+  }
 }
 
 interface PendingSymbol {
@@ -121,7 +149,7 @@ const TWO_POINT_SYMBOLS: Array<{ type: TwoPointSymbolType; label: string }> = [
  *
  * @param props 当前六线谱页面。
  */
-export function ScoreEditor({ page }: { page: ScorePage }) {
+export function ScoreEditor({ page, bookTitle }: { page: ScorePage; bookTitle: string }) {
   const updateFret = useScoreStore((state) => state.updateFret)
   const updateChord = useScoreStore((state) => state.updateChord)
   const updateBarline = useScoreStore((state) => state.updateBarline)
@@ -158,9 +186,10 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
 
   const [quickFillEnabled, setQuickFillEnabled] = useState(quickFillPreferred)
   const [quickTarget, setQuickTarget] = useState<SelectedCell | null>(
-    () => (quickFillPreferred ? findFirstEmptyCell(page) : null),
+    () => (quickFillPreferred ? findQuickStartCell(page) : null),
   )
 
+  // 按视觉顺序展开所有音符节点（先弦后列），快捷填写用它定位和自动跳转。
   const quickNodes = useMemo(() => page.measures.flatMap((measure) => (
     Array.from({ length: 6 }, (_, stringIndex) => (
       measure.positions.map((position) => ({
@@ -172,6 +201,7 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
     )).flat()
   )), [page.measures])
 
+  // 每列第一个空白弦，供单竖线后跳到下一列时使用。
   const quickPositions = useMemo(() => page.measures.flatMap((measure) => (
     measure.positions.map((position) => ({
       measureId: measure.id,
@@ -182,6 +212,7 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
     }))
   )), [page.measures])
 
+  /** 填写完成后跳到下一个空白节点；扫描到末尾会绕回开头。 */
   const advanceQuickTarget = useCallback((from: SelectedCell) => {
     const fromIndex = quickNodes.findIndex((node) => (
       node.measureId === from.measureId
@@ -206,6 +237,7 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
     })
   }, [quickNodes])
 
+  /** 单竖线写入后跳到下一列的第一个空白节点。 */
   const advanceQuickTargetToNextPosition = useCallback((from: SelectedCell) => {
     const fromIndex = quickPositions.findIndex((item) => (
       item.measureId === from.measureId && item.positionId === from.positionId
@@ -226,6 +258,9 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
     })
   }, [quickPositions])
 
+  /**
+   * 开启时优先从最后一个已填节点之后继续找空位，关闭时清空光标。
+   */
   const toggleQuickFill = () => {
     if (quickFillEnabled) {
       quickFillPreferred = false
@@ -237,17 +272,12 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
     if (isSelectMode) toggleSelectMode()
 
     quickFillPreferred = true
-    const firstEmpty = quickNodes.find((node) => !node.filled) ?? quickNodes[0]
-    setQuickTarget(firstEmpty
-      ? {
-          measureId: firstEmpty.measureId,
-          positionId: firstEmpty.positionId,
-          stringNumber: firstEmpty.stringNumber,
-        }
-      : null)
+    const startCell = findQuickStartCell(page)
+    setQuickTarget(startCell)
     setQuickFillEnabled(true)
   }
 
+  // 快捷键只在快捷填写开启、没有弹框且焦点不在输入框时生效。
   useEffect(() => {
     if (!quickFillEnabled) return
 
@@ -328,6 +358,18 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
           position?.barline === 'single' ? null : 'single',
         )
         advanceQuickTargetToNextPosition(quickTarget)
+        return
+      }
+
+      if (key === 'x' && quickTarget.stringNumber !== null) {
+        event.preventDefault()
+        updateFret(
+          quickTarget.measureId,
+          quickTarget.positionId,
+          quickTarget.stringNumber,
+          'X',
+        )
+        advanceQuickTarget(quickTarget)
         return
       }
 
@@ -458,6 +500,7 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
     setMultiNoteMode(true)
   }
 
+  /** 点选音级；再次点击同一个音级会取消该弦的音符。 */
   const toggleMultiNote = (stringNumber: number, fret: FretValue) => {
     if (!selectedCell || !selectedPosition) return
     const currentNote = selectedPosition.notes.find((note) => note.string === stringNumber)
@@ -480,6 +523,7 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
     )
   }
 
+  /** 一键把六根弦都设为闷音 X。 */
   const selectAllMultiNoteMuted = () => {
     if (!selectedCell) return
     updatePositionNotes(
@@ -492,6 +536,7 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
     )
   }
 
+  /** 只保存真正选中的音，不再自动补 X；快捷模式下继续跳到下一列。 */
   const finishMultiNote = () => {
     if (selectedCell && selectedPosition) {
       updatePositionNotes(
@@ -832,12 +877,14 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
 
   return (
     <section className="score-editor" aria-label={`${page.title}六线谱编辑器`}>
+      {/* 页头：主标题显示谱本名，页名作为副标签，页面副标题保持左对齐。 */}
       <header className="score-intro">
-        <div>
-          <p>GUITAR TAB</p>
-          <h1>{page.title}</h1>
-          {page.subtitle && <span className="score-page-subtitle">{page.subtitle}</span>}
+        <p>GUITAR TAB</p>
+        <h1>{bookTitle}</h1>
+        <div className="score-intro-meta">
+          <span className="score-intro-page">{page.title}</span>
         </div>
+        {page.subtitle && <p className="score-page-subtitle">{page.subtitle}</p>}
       </header>
 
       {isSelectMode && (
@@ -1058,11 +1105,11 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
         onClick={toggleQuickFill}
         aria-pressed={quickFillEnabled}
         aria-label={quickFillEnabled
-          ? '关闭快捷填写。数字 0 到 6 填写音级，L 填写或取消单竖线，D 打开单节多音，上下方向键切换弦，删除键删除上一个节点。'
-          : '开启快捷填写。数字 0 到 6 填写音级，L 填写或取消单竖线，D 打开单节多音，上下方向键切换弦，删除键删除上一个节点。'}
+          ? '关闭快捷填写。数字 0 到 6 填写音级，X 填写闷音，L 填写或取消单竖线，D 打开单节多音，上下方向键切换弦，删除键删除上一个节点。'
+          : '开启快捷填写。数字 0 到 6 填写音级，X 填写闷音，L 填写或取消单竖线，D 打开单节多音，上下方向键切换弦，删除键删除上一个节点。'}
         title={quickFillEnabled
-          ? '快捷填写已开启：数字 0–6 填音级 · L 单竖线 · D 单节多音 · ↑↓ 换弦 · Delete 删上一格（点击关闭）'
-          : '快捷填写：数字 0–6 填音级 · L 单竖线 · D 单节多音 · ↑↓ 换弦 · Delete 删上一格'}
+          ? '快捷填写已开启：0–6 音级 · X 闷音 · L 单竖线 · D 单节多音 · ↑↓ 换弦 · Delete 删上一格（点击关闭）'
+          : '快捷填写：0–6 音级 · X 闷音 · L 单竖线 · D 单节多音 · ↑↓ 换弦 · Delete 删上一格'}
       >
         <Lightning size={22} weight={quickFillEnabled ? 'fill' : 'regular'} />
       </button>
@@ -1101,14 +1148,24 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
                       ? '当前：单竖线'
                       : ''}
             </span>
-            <button
-              type="button"
-              className="clear-cell-button"
-              onClick={clearCurrentTarget}
-              disabled={!canClear}
-            >
-              清除
-            </button>
+            {multiNoteMode ? (
+              <button
+                type="button"
+                className="primary-button multi-note-finish"
+                onClick={finishMultiNote}
+              >
+                完成
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="clear-cell-button"
+                onClick={clearCurrentTarget}
+                disabled={!canClear}
+              >
+                清除
+              </button>
+            )}
           </div>
         )}
       >
@@ -1149,7 +1206,13 @@ export function ScoreEditor({ page }: { page: ScorePage }) {
                     <span>点击选择，再次点击取消 · X 一键全选</span>
                   </div>
                   <div className="multi-note-actions">
-                    <button type="button" onClick={finishMultiNote}>完成</button>
+                    <button
+                      type="button"
+                      onClick={clearCurrentTarget}
+                      disabled={!canClear}
+                    >
+                      清除
+                    </button>
                     <button
                       type="button"
                       onClick={selectAllMultiNoteMuted}

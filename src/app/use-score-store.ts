@@ -21,6 +21,7 @@ import {
   type ScorePage,
   type ScoreSymbol,
 } from '../domain/score/score-document'
+import { normalizeThemeColor } from '../domain/score/theme-color'
 import { scoreDb } from '../data/score-db'
 import {
   addMeasure,
@@ -81,6 +82,7 @@ interface ScoreStore {
   addScorePage: (title: string) => void
   addImagePage: (page: ImagePage) => void
   updatePageInfo: (pageId: string, info: PageInfoPatch) => void
+  updateBookThemeColor: (color: string) => void
   updatePagePlaybackSeconds: (
     updates: Array<{ pageId: string; seconds: number }>,
   ) => void
@@ -437,6 +439,31 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
         pages: book.pages.map((candidate) =>
           candidate.id === pageId ? { ...candidate, title: trimmedTitle } : candidate,
         ),
+        updatedAt: new Date().toISOString(),
+      }
+
+      return {
+        books: state.books.map((candidate) =>
+          candidate.id === updatedBook.id ? updatedBook : candidate,
+        ),
+        ...markBookDirty(state, book.id),
+      }
+    }),
+
+  /**
+   * 更新当前谱本的主题色；非法值回退默认主题色。
+   */
+  updateBookThemeColor: (color) =>
+    set((state) => {
+      const book = state.books.find((candidate) => candidate.id === state.activeBookId)
+      if (!book) return {}
+
+      const themeColor = normalizeThemeColor(color)
+      if (book.themeColor === themeColor) return {}
+
+      const updatedBook: ScoreBook = {
+        ...book,
+        themeColor,
         updatedAt: new Date().toISOString(),
       }
 

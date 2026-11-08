@@ -8,7 +8,7 @@ import type {
 export const STAFF_HEIGHT = 168
 
 /** 六根弦在 SVG 中的纵坐标。 */
-export const STRING_Y = [14, 42, 70, 98, 126, 154] as const
+const STRING_Y = [14, 42, 70, 98, 126, 154] as const
 
 /** 扫弦/琶音范围对应的起止弦。 */
 export const RANGE_STRINGS: Record<StringRange, readonly [number, number]> = {
