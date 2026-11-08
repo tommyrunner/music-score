@@ -75,10 +75,33 @@
 .note-grid button.is-quick-target { background: color-mix(in srgb, var(--accent) 16%, transparent); box-shadow: inset 0 0 0 1.5px var(--accent); border-radius: 3px; }
 .note-grid button.is-quick-target::after { display: none; }
 
-.quick-fill-toggle { position: fixed; right: 26px; bottom: 26px; z-index: 40; width: 52px; height: 52px; display: grid; place-items: center; padding: 0; color: var(--ink-soft); border: 1px solid var(--line-strong); border-radius: 50%; background: color-mix(in srgb, var(--paper) 92%, transparent); box-shadow: 0 12px 30px rgba(25, 32, 27, .18); backdrop-filter: blur(10px); cursor: pointer; transition: transform 160ms ease, color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
+.quick-fill-dock { position: fixed; right: 26px; bottom: 26px; z-index: 40; }
+.quick-fill-toggle { position: relative; width: 52px; height: 52px; display: grid; place-items: center; padding: 0; color: var(--ink-soft); border: 1px solid var(--line-strong); border-radius: 50%; background: color-mix(in srgb, var(--paper) 92%, transparent); box-shadow: 0 12px 30px rgba(25, 32, 27, .18); backdrop-filter: blur(10px); cursor: pointer; transition: transform 160ms ease, color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
 .quick-fill-toggle:hover { color: var(--ink); transform: translateY(-2px); }
 .quick-fill-toggle.is-active { color: #fff8f5; border-color: var(--accent-dark); background: var(--accent); box-shadow: 0 14px 32px color-mix(in srgb, var(--accent) 34%, transparent); }
 .quick-fill-toggle.is-active::after { content: ''; position: absolute; inset: -5px; border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent); border-radius: 50%; animation: quick-fill-pulse 1.8s ease-out infinite; }
+
+.quick-fill-menu { position: absolute; right: 0; bottom: calc(100% + 10px); width: 248px; display: grid; gap: 4px; padding: 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); box-shadow: 0 18px 44px rgba(25, 32, 27, .22); animation: quick-menu-in 140ms ease; }
+.quick-fill-menu button { display: flex; align-items: center; gap: 9px; padding: 9px 10px; color: var(--ink); text-align: left; border: 1px solid transparent; border-radius: 8px; background: transparent; cursor: pointer; }
+.quick-fill-menu button:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.quick-fill-menu button.is-active { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); background: color-mix(in srgb, var(--accent) 9%, var(--paper)); }
+.quick-fill-menu button > span { min-width: 0; display: grid; gap: 1px; }
+.quick-fill-menu strong { font-size: 11px; font-weight: 650; }
+.quick-fill-menu small { color: var(--ink-faint); font-size: 9px; line-height: 1.4; }
+.quick-fill-menu svg { flex: none; color: var(--ink-soft); }
+.quick-fill-menu button.is-active svg { color: var(--accent-dark); }
+
+.node-context-menu { position: fixed; z-index: 70; min-width: 176px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); box-shadow: 0 16px 40px rgba(25, 32, 27, .2); animation: quick-menu-in 120ms ease; }
+.node-context-menu button { width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: var(--ink); text-align: left; border: 0; border-radius: 7px; background: transparent; cursor: pointer; font-size: 11px; }
+.node-context-menu button:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.node-context-menu button:disabled { opacity: .45; cursor: not-allowed; }
+.node-context-menu small { margin-left: auto; color: var(--ink-faint); font-size: 9px; }
+.node-context-menu svg { color: var(--ink-soft); }
+
+@keyframes quick-menu-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 @keyframes quick-fill-pulse {
   0% { opacity: .65; transform: scale(.9); }
@@ -87,7 +110,8 @@
 }
 
 @media (max-width: 700px) {
-  .quick-fill-toggle { right: 16px; bottom: 16px; width: 48px; height: 48px; }
+  .quick-fill-dock { right: 16px; bottom: 16px; }
+  .quick-fill-toggle { width: 48px; height: 48px; }
 }
 
 .select-mode-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 16px; padding: 10px 12px; color: var(--ink); border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--line)); border-left: 3px solid var(--accent); border-radius: 8px; background: color-mix(in srgb, var(--accent) 7%, var(--paper)); font-size: 11px; }
@@ -97,6 +121,8 @@
 .select-mode-actions { flex: none; display: flex; gap: 6px; }
 .select-mode-actions button { min-height: 30px; padding: 0 10px; color: var(--ink); border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line)); border-radius: 6px; background: #fff; cursor: pointer; font-size: 10px; }
 .select-mode-actions button:first-child { color: var(--accent-dark); font-weight: 650; }
+.select-mode-actions .clear-selection-button { color: var(--accent-dark); }
+.select-mode-actions button:disabled { opacity: .45; cursor: not-allowed; }
 .select-mode-actions button:hover:not(:disabled) { border-color: var(--accent); }
 
 .score-symbol-layer { position: absolute; inset: 0; z-index: 4; overflow: visible; pointer-events: none; }
@@ -122,6 +148,8 @@
 .lyric-line { height: 20px; display: flex; align-items: center; padding: 0 1%; color: var(--ink); text-align: left; }
 .lyric-line:hover,
 .lyric-line:focus-visible { background: rgba(103, 112, 105, .055); }
+.lyric-line-editor { width: 100%; min-width: 0; height: 20px; padding: 0 1%; color: var(--ink); border: 0; border-radius: 3px; background: color-mix(in srgb, var(--paper) 90%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, var(--line)); font: 16px/20px "Iowan Old Style", "Songti SC", serif; letter-spacing: 0; }
+.lyric-line-editor:focus { outline: none; box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 2px color-mix(in srgb, var(--accent) 14%, transparent); }
 .add-lyric-line { position: absolute; z-index: 2; left: 0; top: 100%; height: 20px; padding: 0 1%; color: var(--ink-faint); font-size: 9px; text-align: left; opacity: 0; transition: opacity 100ms ease, background-color 100ms ease; }
 .score-system:hover .add-lyric-line,
 .add-lyric-line:focus-visible { opacity: 1; }

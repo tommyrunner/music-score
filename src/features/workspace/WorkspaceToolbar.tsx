@@ -18,7 +18,6 @@ import {
   FolderSimple,
   Info,
   PencilSimple,
-  Selection,
 } from '../../components/icons'
 import {
   clearCloudSource,
@@ -78,7 +77,6 @@ export function WorkspaceToolbar({
   const redo = useScoreStore((state) => state.redo)
   const isSelectMode = useScoreStore((state) => state.isSelectMode)
   const selectedNodes = useScoreStore((state) => state.selectedNodes)
-  const toggleSelectMode = useScoreStore((state) => state.toggleSelectMode)
   const copySelection = useScoreStore((state) => state.copySelection)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isWorking, setWorking] = useState(false)
@@ -279,7 +277,7 @@ export function WorkspaceToolbar({
         <Popover.Root>
           <Popover.Trigger asChild>
             <button
-              className={`text-button edit-menu-button ${isSelectMode ? 'is-active' : ''}`}
+              className="text-button edit-menu-button"
               aria-label="编辑菜单"
               title="编辑"
             >
@@ -292,7 +290,7 @@ export function WorkspaceToolbar({
             <Popover.Content className="edit-popover" align="end" sideOffset={8}>
               <div className="edit-popover-heading">
                 <strong>编辑</strong>
-                <span>历史、选择与复制</span>
+                <span>历史与复制</span>
               </div>
 
               <Popover.Close asChild>
@@ -318,20 +316,6 @@ export function WorkspaceToolbar({
               </Popover.Close>
 
               <div className="edit-popover-separator" />
-
-              <Popover.Close asChild>
-                <button
-                  onClick={toggleSelectMode}
-                  aria-label={isSelectMode ? '退出选择模式' : '选择节点'}
-                >
-                  <Selection size={17} />
-                  <span>
-                    <strong>{isSelectMode ? '退出选择模式' : '选择节点'}</strong>
-                    <small>点击音符节点进行多选</small>
-                  </span>
-                  {isSelectMode && <kbd>Esc</kbd>}
-                </button>
-              </Popover.Close>
 
               <Popover.Close asChild>
                 <button

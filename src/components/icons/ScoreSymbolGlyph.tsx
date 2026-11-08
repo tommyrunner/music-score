@@ -43,8 +43,12 @@ function ConnectionGlyph({
   const left = Math.min(startX, endX)
   const right = Math.max(startX, endX)
   const middle = (left + right) / 2
-  const controlY = symbol.type === 'tie' ? -6 : -24
-  const path = `M ${left} 10 Q ${middle} ${controlY} ${right} 10`
+  // 延音线整体抬高 10 个 viewBox 单位，让弧线端点在音符文字上方留出空隙；
+  // 击弦/勾弦仍保持原来的高度。
+  const isTie = symbol.type === 'tie'
+  const baseY = isTie ? 0 : 10
+  const controlY = isTie ? -12 : -24
+  const path = `M ${left} ${baseY} Q ${middle} ${controlY} ${right} ${baseY}`
 
   return (
     <>

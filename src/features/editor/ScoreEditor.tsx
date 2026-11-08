@@ -8,8 +8,10 @@ import {
   ClipboardText,
   Lightning,
   MultiNoteSwatch,
+  Selection,
   StaffLines,
   SymbolSwatch,
+  Trash,
 } from '../../components/icons'
 import {
   SCORE_SYMBOL_LABELS,
@@ -114,10 +116,45 @@ interface MarqueeDrag {
   moved: boolean
 }
 
-interface SelectedLyric {
-  measureId: string
-  index: number
-  text: string
+/**
+ * 歌词就地编辑框。
+ *
+ * 回车提交、Esc 取消；失焦时由外部统一保存并切回展示状态。
+ */
+function InlineLyricEditor({
+  value,
+  ariaLabel,
+  onChange,
+  onCommit,
+  onCancel,
+}: {
+  value: string
+  ariaLabel: string
+  onChange: (value: string) => void
+  onCommit: () => void
+  onCancel: () => void
+}) {
+  return (
+    <input
+      className="lyric-line-editor"
+      value={value}
+      autoFocus
+      maxLength={300}
+      spellCheck={false}
+      aria-label={ariaLabel}
+      onChange={(event) => onChange(event.target.value)}
+      onBlur={onCommit}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault()
+          event.currentTarget.blur()
+        } else if (event.key === 'Escape') {
+          event.preventDefault()
+          onCancel()
+        }
+      }}
+    />
+  )
 }
 
 const fretChoices: FretValue[] = [
@@ -163,13 +200,20 @@ export function ScoreEditor({ page, bookTitle }: { page: ScorePage; bookTitle: s
   const toggleNodeSelection = useScoreStore((state) => state.toggleNodeSelection)
   const setSelectedNodes = useScoreStore((state) => state.setSelectedNodes)
   const copySelection = useScoreStore((state) => state.copySelection)
+  const clearSelectedNodes = useScoreStore((state) => state.clearSelectedNodes)
   const clipboard = useScoreStore((state) => state.clipboard)
   const pasteAt = useScoreStore((state) => state.pasteAt)
   const [selectedCell, setSelectedCell] = useState<SelectedCell | null>(null)
   const [cellDialogTab, setCellDialogTab] = useState<CellDialogTab>('note')
   const [selectedChord, setSelectedChord] = useState<SelectedChord | null>(null)
-  const [selectedLyric, setSelectedLyric] = useState<SelectedLyric | null>(null)
-  const [lyricDraft, setLyricDraft] = useState('')
+  // 歌词就地编辑：记录正在编辑的谱面行、索引和草稿；失焦时统一提交。
+  const [editingLyric, setEditingLyric] = useState<{
+    measureId: string
+    index: number
+    original: string
+    draft: string
+  } | null>(null)
+  const lyricEditCancelRef = useRef(false)
   const [pendingSymbol, setPendingSymbol] = useState<PendingSymbol | null>(null)
   const [selectedSymbol, setSelectedSymbol] = useState<SelectedSymbol | null>(null)
   const [multiNoteMode, setMultiNoteMode] = useState(false)
@@ -188,6 +232,17 @@ export function ScoreEditor({ page, bookTitle }: { page: ScorePage; bookTitle: s
   const [quickTarget, setQuickTarget] = useState<SelectedCell | null>(
     () => (quickFillPreferred ? findQuickStartCell(page) : null),
   )
+  // 右下角快捷菜单（快速填写 / 选择节点）与节点右键菜单（目前只有粘贴）。
+  const [quickMenuOpen, setQuickMenuOpen] = useState(false)
+  const [nodeMenu, setNodeMenu] = useState<{
+    x: number
+    y: number
+    measureId: string
+    positionId: string
+    stringNumber: number
+  } | null>(null)
+  const quickDockRef = useRef<HTMLDivElement>(null)
+  const nodeMenuRef = useRef<HTMLDivElement>(null)
 
   // 按视觉顺序展开所有音符节点（先弦后列），快捷填写用它定位和自动跳转。
   const quickNodes = useMemo(() => page.measures.flatMap((measure) => (
@@ -280,6 +335,9 @@ export function ScoreEditor({ page, bookTitle }: { page: ScorePage; bookTitle: s
   // 快捷键只在快捷填写开启、没有弹框且焦点不在输入框时生效。
   useEffect(() => {
     if (!quickFillEnabled) return
+    // 菜单打开时，快捷键让位给菜单操作。
+    if (document.querySelector('.node-context-menu')) return
+    if (document.querySelector('.quick-fill-menu')) return
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return
@@ -406,6 +464,49 @@ export function ScoreEditor({ page, bookTitle }: { page: ScorePage; bookTitle: s
     node?.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' })
   }, [quickFillEnabled, quickTarget])
 
+  useEffect(() => {
+    if (!quickMenuOpen) return
+
+    const closeOnOutside = (event: PointerEvent) => {
+      if (event.target instanceof Node && quickDockRef.current?.contains(event.target)) return
+      setQuickMenuOpen(false)
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setQuickMenuOpen(false)
+    }
+
+    window.addEventListener('pointerdown', closeOnOutside)
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      window.removeEventListener('pointerdown', closeOnOutside)
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [quickMenuOpen])
+
+  useEffect(() => {
+    if (!nodeMenu) return
+
+    const closeOnOutside = (event: PointerEvent) => {
+      if (event.target instanceof Node && nodeMenuRef.current?.contains(event.target)) return
+      setNodeMenu(null)
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setNodeMenu(null)
+    }
+    const close = () => setNodeMenu(null)
+
+    window.addEventListener('pointerdown', closeOnOutside)
+    window.addEventListener('keydown', closeOnEscape)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      window.removeEventListener('pointerdown', closeOnOutside)
+      window.removeEventListener('keydown', closeOnEscape)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [nodeMenu])
+
   const selectedMeasure = selectedCell
     ? page.measures.find((measure) => measure.id === selectedCell.measureId) ?? null
     : null
@@ -415,6 +516,14 @@ export function ScoreEditor({ page, bookTitle }: { page: ScorePage; bookTitle: s
   const selectedPositionIndex = selectedPosition
     ? selectedMeasure?.positions.findIndex((position) => position.id === selectedPosition.id) ?? -1
     : -1
+  // 右键菜单当前指向的节点音符；用于决定是否显示“清除”。
+  const contextMenuNote = nodeMenu
+    ? page.measures
+      .find((measure) => measure.id === nodeMenu.measureId)
+      ?.positions.find((position) => position.id === nodeMenu.positionId)
+      ?.notes.find((note) => note.string === nodeMenu.stringNumber) ?? null
+    : null
+
   const selectedNote = selectedCell && selectedCell.stringNumber !== null
     ? selectedPosition?.notes.find((note) => note.string === selectedCell.stringNumber) ?? null
     : null
@@ -674,21 +783,43 @@ export function ScoreEditor({ page, bookTitle }: { page: ScorePage; bookTitle: s
     closeCellDialog()
   }
 
-  const openLyricDialog = (lyric: SelectedLyric) => {
-    setLyricDraft(lyric.text)
-    setSelectedLyric(lyric)
+  const startLyricEdit = (measureId: string, index: number, text: string) => {
+    lyricEditCancelRef.current = false
+    setEditingLyric({ measureId, index, original: text, draft: text })
   }
 
-  const saveLyric = () => {
-    if (!selectedLyric || !lyricDraft.trim()) return
-    updateLyricLine(selectedLyric.measureId, selectedLyric.index, lyricDraft)
-    setSelectedLyric(null)
+  const updateLyricDraft = (value: string) => {
+    setEditingLyric((current) => (current ? { ...current, draft: value } : current))
   }
 
-  const clearLyric = () => {
-    if (!selectedLyric || !selectedLyric.text) return
-    updateLyricLine(selectedLyric.measureId, selectedLyric.index, null)
-    setSelectedLyric(null)
+  const cancelLyricEdit = () => {
+    lyricEditCancelRef.current = true
+    setEditingLyric(null)
+  }
+
+  const commitLyricEdit = () => {
+    const editing = editingLyric
+    if (!editing) return
+
+    if (lyricEditCancelRef.current) {
+      lyricEditCancelRef.current = false
+      setEditingLyric(null)
+      return
+    }
+
+    setEditingLyric(null)
+    if (editing.draft === editing.original) return
+
+    const measure = page.measures.find((candidate) => candidate.id === editing.measureId)
+    const exists = Boolean(measure && editing.index < measure.lyrics.length)
+
+    // 清空已有歌词行等于删除；新建行留空则直接丢弃。
+    if (!editing.draft.trim()) {
+      if (exists) updateLyricLine(editing.measureId, editing.index, null)
+      return
+    }
+
+    updateLyricLine(editing.measureId, editing.index, editing.draft)
   }
 
   useEffect(() => {
@@ -700,6 +831,8 @@ export function ScoreEditor({ page, bookTitle }: { page: ScorePage; bookTitle: s
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (document.querySelector('.node-context-menu')) return
+      if (document.querySelector('.quick-fill-menu')) return
       if (
         event.target instanceof Element
         && event.target.closest('input, textarea, select, [contenteditable="true"]')
@@ -901,6 +1034,14 @@ export function ScoreEditor({ page, bookTitle }: { page: ScorePage; bookTitle: s
             >
               复制
             </button>
+            <button
+              type="button"
+              className="clear-selection-button"
+              onClick={clearSelectedNodes}
+              disabled={selectedNodes.length === 0}
+            >
+              清除
+            </button>
             <button type="button" onClick={toggleSelectMode}>取消</button>
           </div>
         </div>
@@ -1044,6 +1185,17 @@ export function ScoreEditor({ page, bookTitle }: { page: ScorePage; bookTitle: s
                               stringNumber,
                             })
                           }}
+                          onContextMenu={(event) => {
+                            event.preventDefault()
+                            setQuickMenuOpen(false)
+                            setNodeMenu({
+                              x: event.clientX,
+                              y: event.clientY,
+                              measureId: measure.id,
+                              positionId: position.id,
+                              stringNumber,
+                            })
+                          }}
                         >
                           {note && <span className="note-value">{note.fret}</span>}
                         </button>
@@ -1060,34 +1212,53 @@ export function ScoreEditor({ page, bookTitle }: { page: ScorePage; bookTitle: s
 
               <div className="lyrics-area" aria-label={`第 ${measureIndex + 1} 行歌词`}>
                 {measure.lyrics.map((lyric, lyricIndex) => (
-                  <button
-                    className="lyric-line"
-                    key={`${measure.id}-${lyricIndex}`}
-                    aria-label={`编辑歌词 ${lyric}`}
-                    onClick={() => openLyricDialog({
-                      measureId: measure.id,
-                      index: lyricIndex,
-                      text: lyric,
-                    })}
-                  >
-                    <FittedSingleLineText
-                      text={lyric}
-                      fontSize={16}
-                    />
-                  </button>
+                  editingLyric?.measureId === measure.id && editingLyric.index === lyricIndex
+                    ? (
+                      <InlineLyricEditor
+                        key={`${measure.id}-edit-${lyricIndex}`}
+                        value={editingLyric.draft}
+                        ariaLabel={`编辑第 ${measureIndex + 1} 行第 ${lyricIndex + 1} 行歌词`}
+                        onChange={updateLyricDraft}
+                        onCommit={commitLyricEdit}
+                        onCancel={cancelLyricEdit}
+                      />
+                    )
+                    : (
+                      <button
+                        className="lyric-line"
+                        key={`${measure.id}-${lyricIndex}`}
+                        aria-label={`编辑歌词 ${lyric}`}
+                        onClick={() => startLyricEdit(measure.id, lyricIndex, lyric)}
+                      >
+                        <FittedSingleLineText
+                          text={lyric}
+                          fontSize={16}
+                        />
+                      </button>
+                    )
                 ))}
                 {measure.lyrics.length < 12 && (
-                  <button
-                    className="add-lyric-line"
-                    aria-label={measure.lyrics.length ? '新增一行歌词' : '输入歌词'}
-                    onClick={() => openLyricDialog({
-                      measureId: measure.id,
-                      index: measure.lyrics.length,
-                      text: '',
-                    })}
-                  >
-                    {measure.lyrics.length ? '新增一行歌词' : '输入歌词'}
-                  </button>
+                  editingLyric?.measureId === measure.id
+                    && editingLyric.index === measure.lyrics.length
+                    ? (
+                      <InlineLyricEditor
+                        key={`${measure.id}-edit-new`}
+                        value={editingLyric.draft}
+                        ariaLabel="输入新歌词"
+                        onChange={updateLyricDraft}
+                        onCommit={commitLyricEdit}
+                        onCancel={cancelLyricEdit}
+                      />
+                    )
+                    : (
+                      <button
+                        className="add-lyric-line"
+                        aria-label={measure.lyrics.length ? '新增一行歌词' : '输入歌词'}
+                        onClick={() => startLyricEdit(measure.id, measure.lyrics.length, '')}
+                      >
+                        {measure.lyrics.length ? '新增一行歌词' : '输入歌词'}
+                      </button>
+                    )
                 )}
               </div>
             </article>
@@ -1099,20 +1270,110 @@ export function ScoreEditor({ page, bookTitle }: { page: ScorePage; bookTitle: s
         <span className="score-page-footer-side is-right">{page.footerRight}</span>
       </footer>
 
-      <button
-        type="button"
-        className={`quick-fill-toggle${quickFillEnabled ? ' is-active' : ''}`}
-        onClick={toggleQuickFill}
-        aria-pressed={quickFillEnabled}
-        aria-label={quickFillEnabled
-          ? '关闭快捷填写。数字 0 到 6 填写音级，X 填写闷音，L 填写或取消单竖线，D 打开单节多音，上下方向键切换弦，删除键删除上一个节点。'
-          : '开启快捷填写。数字 0 到 6 填写音级，X 填写闷音，L 填写或取消单竖线，D 打开单节多音，上下方向键切换弦，删除键删除上一个节点。'}
-        title={quickFillEnabled
-          ? '快捷填写已开启：0–6 音级 · X 闷音 · L 单竖线 · D 单节多音 · ↑↓ 换弦 · Delete 删上一格（点击关闭）'
-          : '快捷填写：0–6 音级 · X 闷音 · L 单竖线 · D 单节多音 · ↑↓ 换弦 · Delete 删上一格'}
-      >
-        <Lightning size={22} weight={quickFillEnabled ? 'fill' : 'regular'} />
-      </button>
+      <div className="quick-fill-dock" ref={quickDockRef}>
+        {quickMenuOpen && (
+          <div className="quick-fill-menu" role="menu" aria-label="快捷操作">
+            <button
+              type="button"
+              role="menuitemcheckbox"
+              aria-checked={quickFillEnabled}
+              className={quickFillEnabled ? 'is-active' : ''}
+              onClick={() => {
+                toggleQuickFill()
+                setQuickMenuOpen(false)
+              }}
+            >
+              <Lightning
+                size={17}
+                weight={quickFillEnabled ? 'fill' : 'regular'}
+                aria-hidden="true"
+              />
+              <span>
+                <strong>快速填写</strong>
+                <small>
+                  {quickFillEnabled
+                    ? '已开启：0–6 / X / L / D / ↑↓ / Delete'
+                    : '用数字键连续填写音级'}
+                </small>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitemcheckbox"
+              aria-checked={isSelectMode}
+              className={isSelectMode ? 'is-active' : ''}
+              onClick={() => {
+                if (!isSelectMode && quickFillEnabled) toggleQuickFill()
+                toggleSelectMode()
+                setQuickMenuOpen(false)
+              }}
+            >
+              <Selection size={17} aria-hidden="true" />
+              <span>
+                <strong>选择节点</strong>
+                <small>{isSelectMode ? '已开启：点击或框选节点' : '多选节点后复制或清除'}</small>
+              </span>
+            </button>
+          </div>
+        )}
+        <button
+          type="button"
+          className={`quick-fill-toggle${quickFillEnabled || isSelectMode ? ' is-active' : ''}`}
+          onClick={() => setQuickMenuOpen((open) => !open)}
+          aria-haspopup="menu"
+          aria-expanded={quickMenuOpen}
+          aria-label="快捷操作菜单"
+          title="快捷操作：快速填写 / 选择节点"
+        >
+          <Lightning size={22} weight={quickFillEnabled ? 'fill' : 'regular'} />
+        </button>
+      </div>
+
+      {nodeMenu && (
+        <div
+          className="node-context-menu"
+          ref={nodeMenuRef}
+          role="menu"
+          aria-label="节点操作"
+          style={{
+            left: Math.max(8, Math.min(nodeMenu.x, window.innerWidth - 190)),
+            top: Math.max(8, Math.min(nodeMenu.y, window.innerHeight - 140)),
+          }}
+        >
+          {contextMenuNote && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                updateFret(
+                  nodeMenu.measureId,
+                  nodeMenu.positionId,
+                  nodeMenu.stringNumber,
+                  null,
+                )
+                setNodeMenu(null)
+              }}
+            >
+              <Trash size={15} aria-hidden="true" />
+              <span>清除</span>
+              <small>{contextMenuNote.fret === 'X' ? '闷音 X' : `${contextMenuNote.fret} 品`}</small>
+            </button>
+          )}
+          <button
+            type="button"
+            role="menuitem"
+            disabled={clipboard.length === 0}
+            onClick={() => {
+              pasteAt(nodeMenu.measureId, nodeMenu.positionId)
+              setNodeMenu(null)
+            }}
+          >
+            <ClipboardText size={15} aria-hidden="true" />
+            <span>粘贴</span>
+            <small>{clipboard.length > 0 ? `${clipboard.length} 个音符` : '剪贴板为空'}</small>
+          </button>
+        </div>
+      )}
 
       <DialogShell
         open={selectedCell !== null}
@@ -1389,38 +1650,6 @@ export function ScoreEditor({ page, bookTitle }: { page: ScorePage; bookTitle: s
             </div>
           </div>
         )}
-      </DialogShell>
-
-      <DialogShell
-        open={selectedLyric !== null}
-        onOpenChange={(open) => !open && setSelectedLyric(null)}
-        title={selectedLyric?.text ? '编辑歌词' : '输入歌词'}
-        description="歌词会完整显示在当前谱表下方。"
-      >
-        <form
-          className="lyric-form"
-          onSubmit={(event) => {
-            event.preventDefault()
-            saveLyric()
-          }}
-        >
-          <label htmlFor="lyric-content">歌词内容</label>
-          <textarea
-            id="lyric-content"
-            maxLength={300}
-            rows={4}
-            value={lyricDraft}
-            onChange={(event) => setLyricDraft(event.target.value)}
-            autoFocus
-          />
-          <div className="lyric-form-meta">{lyricDraft.length} / 300</div>
-          <div className="lyric-form-actions">
-            {selectedLyric?.text && (
-              <button type="button" className="clear-lyric" onClick={clearLyric}>清除这行歌词</button>
-            )}
-            <button type="submit" className="primary-button" disabled={!lyricDraft.trim()}>保存歌词</button>
-          </div>
-        </form>
       </DialogShell>
 
       <ChordDialog

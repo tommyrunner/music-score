@@ -179,6 +179,56 @@ export function removeSymbol(
 }
 
 /**
+ * 要清除的节点坐标。
+ */
+export interface NoteNodeTarget {
+  measureId: string
+  positionId: string
+  stringNumber: number
+}
+
+/**
+ * 批量清除选中节点上的音符。
+ *
+ * 一次遍历完成，避免对同一列重复过滤；没有实际变化时返回原页面。
+ *
+ * @param page 原始页面。
+ * @param targets 要清除的节点列表。
+ */
+export function clearNotesAt(page: ScorePage, targets: NoteNodeTarget[]): ScorePage {
+  if (targets.length === 0) return page
+
+  const stringsByPosition = new Map<string, Set<number>>()
+  targets.forEach(({ measureId, positionId, stringNumber }) => {
+    const key = `${measureId}:${positionId}`
+    const strings = stringsByPosition.get(key) ?? new Set<number>()
+    strings.add(stringNumber)
+    stringsByPosition.set(key, strings)
+  })
+
+  let changed = false
+  const measures = page.measures.map((measure) => {
+    let measureChanged = false
+    const positions = measure.positions.map((position) => {
+      const strings = stringsByPosition.get(`${measure.id}:${position.id}`)
+      if (!strings) return position
+
+      const notes = position.notes.filter((note) => !strings.has(note.string))
+      if (notes.length === position.notes.length) return position
+
+      measureChanged = true
+      return { ...position, notes }
+    })
+
+    if (!measureChanged) return measure
+    changed = true
+    return { ...measure, positions }
+  })
+
+  return changed ? { ...page, measures } : page
+}
+
+/**
  * 用一批音符替换指定位置的所有音符。
  *
  * @param page 原始页面。
@@ -305,11 +355,13 @@ export function setLyricLine(
       }
 
       const lyrics = [...measure.lyrics]
-      const normalizedText = text?.trim() ?? ''
+      // 保留用户输入的空格（用于和音符对齐），只把换行折叠成空格。
+      const normalizedText = text?.replace(/\r\n?|\n/g, ' ') ?? ''
+      const hasContent = normalizedText.trim().length > 0
 
       if (lyricIndex === lyrics.length) {
-        if (normalizedText && lyrics.length < 12) lyrics.push(normalizedText)
-      } else if (normalizedText) {
+        if (hasContent && lyrics.length < 12) lyrics.push(normalizedText)
+      } else if (hasContent) {
         lyrics[lyricIndex] = normalizedText
       } else {
         lyrics.splice(lyricIndex, 1)

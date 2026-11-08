@@ -26,6 +26,7 @@ import { scoreDb } from '../data/score-db'
 import {
   addMeasure,
   addSymbol as addSymbolToPage,
+  clearNotesAt,
   appendPage,
   pasteNotesFrom,
   removeSymbol as removeSymbolFromPage,
@@ -97,6 +98,7 @@ interface ScoreStore {
   ) => void
   setSelectedNodes: (nodes: SelectedNode[]) => void
   copySelection: () => void
+  clearSelectedNodes: () => void
   pasteAt: (measureId: string, positionId: string) => void
   updateFret: (
     measureId: string,
@@ -599,6 +601,20 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
 
   setSelectedNodes: (nodes) =>
     set((state) => state.isSelectMode ? { selectedNodes: nodes } : {}),
+
+  clearSelectedNodes: () =>
+    set((state) => {
+      if (!state.isSelectMode || state.selectedNodes.length === 0) return {}
+
+      const active = findActivePage(state)
+      if (!active) return {}
+
+      const nextPage = clearNotesAt(active.page, state.selectedNodes)
+      // 选中的节点没有可清除音符时只清空选择，不写入撤销历史。
+      if (nextPage === active.page) return { selectedNodes: [] }
+
+      return { ...updateActivePage(state, () => nextPage), selectedNodes: [] }
+    }),
 
   copySelection: () =>
     set((state) => {

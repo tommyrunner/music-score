@@ -81,14 +81,6 @@
 .cell-dialog-selection { min-width: 0; overflow: hidden; color: var(--ink-faint); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .clear-cell-button { grid-column: 2; justify-self: center; flex: none; min-height: 32px; padding: 0 16px; color: var(--accent-dark); border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line)); border-radius: var(--radius-control); background: #fff; cursor: pointer; font-size: 11px; font-weight: 650; }
 .clear-cell-button:hover:not(:disabled) { border-color: var(--accent); }
-.lyric-form { display: grid; gap: 8px; }
-.lyric-form label { font-size: 12px; font-weight: 650; }
-.lyric-form textarea { width: 100%; min-height: 104px; resize: vertical; padding: 11px 12px; color: var(--ink); border: 1px solid #bdc4bd; border-radius: var(--radius-control); background: #fff; font: 13px/1.6 "Avenir Next", "PingFang SC", sans-serif; }
-.lyric-form textarea:focus { border-color: var(--accent); outline: 2px solid color-mix(in srgb, var(--accent) 18%, transparent); }
-.lyric-form-meta { color: var(--ink-faint); font-size: 10px; text-align: right; }
-.lyric-form-actions { min-height: 42px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 6px; }
-.lyric-form-actions .clear-lyric { margin-right: auto; padding: 8px 0; color: var(--accent-dark); border: 0; background: transparent; cursor: pointer; }
-.lyric-form-actions .primary-button { min-width: 112px; }
 .chord-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
 .chord-picker button { min-height: 84px; display: grid; justify-items: center; align-content: start; gap: 3px; padding: 7px 3px 6px; color: var(--ink); border: 1px solid #c7ccc6; border-radius: var(--radius-control); background: #fff; cursor: pointer; font-family: "Iowan Old Style", serif; font-weight: 700; }
 .chord-picker button strong { font-size: 12px; }

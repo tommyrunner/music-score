@@ -142,7 +142,10 @@ const measureSchema = z
             ),
           ],
     ),
-    lyrics: z.array(z.string().trim().min(1).max(300)).max(12).default([]),
+    // 歌词保留用户输入的空格（用于和音符对齐），只要求不是纯空白。
+    lyrics: z.array(
+      z.string().max(300).refine((text) => text.trim().length > 0, '歌词不能为空'),
+    ).max(12).default([]),
     symbols: z.array(scoreSymbolSchema).max(200).default([]),
   })
   .strict()
